@@ -1,0 +1,11 @@
+# Python cache
+*.py[cod]
+*$py.class
+__pycache__/
+
+# DS Store
+.DS_Store
+
+# Internal testing
+internal_testing/
+

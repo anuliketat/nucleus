@@ -1,0 +1,13 @@
+# Language
+*.py linguist-language=Python
+
+# Auto detect for line endings 
+* text=auto
+# Source files
+*.py text
+# Binary files
+*.pkl binary
+
+# For `git diff`
+*.py diff=python
+
