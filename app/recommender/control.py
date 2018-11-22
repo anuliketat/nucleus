@@ -35,7 +35,8 @@ class REControl(object):
 			except AttributeError:
 				print('Class does not exist')
 				raise NoClass(class_name)
-		except Exception:
+		except Exception as e:
+			print(e)
 			print('Module does not exist')
 			raise NoModule(module_name)
 

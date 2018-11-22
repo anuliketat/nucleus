@@ -12,7 +12,6 @@ from scipy.sparse.linalg import svds
 import string 
 import pickle
 
-from app.exceptions import NoStartupRecommendations
 from utils.metrics import cosine_sim
 from utils.misc import sort_tuple
 
