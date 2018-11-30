@@ -22,7 +22,7 @@ def get_food_recommendations(user_id):
 	except NoModule as e:
 		return jsonify({'message': e.__str__()}), e.http_status()
 	except Exception as e:
-		return jsonify(e)
+		return e
 	end_time = time.time()
 	print('Execution time: ' + str(end_time-start_time))
 	return jsonify(response), 200
@@ -38,7 +38,7 @@ def update_model(model_name, model_version):
 	except NoModule as e:
 		return jsonify({'message': e.__str__()}), e.http_status()
 	except Exception as e:
-		return jsonify(e)
+		return e
 	end_time = time.time()
 	print('Execution time: ' + str(end_time-start_time))
 	return jsonify(response), 200
