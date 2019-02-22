@@ -8,9 +8,10 @@ from flask import current_app as app
 from api.exceptions import NoClass, NoModule
 
 class REControl(object):
-	def __init__(self, db_main, db_ai, model_name, model_version):
+	def __init__(self, db_main, db_ai, fs_ai, model_name, model_version):
 		self.db_main = db_main
 		self.db_ai = db_ai
+		self.fs_ai = fs_ai
 		self.model_class = None
 
 		try:
@@ -43,5 +44,5 @@ class REControl(object):
 
 	def update_model(self):
 		# Use celery or gevent
-		self.model_class.update_model(self.db_main, self.db_ai)
+		self.model_class.update_model(self.db_main, self.db_ai, self.fs_ai)
 		return {'message': 'Model has been updated successfully!'}

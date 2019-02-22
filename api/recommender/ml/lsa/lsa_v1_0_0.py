@@ -89,7 +89,7 @@ class lsa_v1_0_0(basic_model):
 		return pickle.loads(model)
 
 	# Need implementation
-	def __update_recommendations__(self, food_profiles, db_main, db_ai):
+	def __update_recommendations__(self, food_profiles, _model_created_at, db_main, db_ai):
 		print('__update_recommendations__() function called')
 		return 0
 
@@ -99,7 +99,7 @@ class lsa_v1_0_0(basic_model):
 		return 0
 
 	# Need implementation
-	def update_model(self, db_main, db_ai):
+	def update_model(self, db_main, db_ai, fs_ai):
 		print('update_model() function called')
 
 		food_ids_list, food_list = self.__get_data__(db_ai)
@@ -108,27 +108,15 @@ class lsa_v1_0_0(basic_model):
 		_model = {}
 		_model['foodProfiles'] = food_profiles
 		_model['foodIDsList'] = food_ids_list
+		model_id = fs_ai.put(self.__model_serialize__(_model))
 
 		ml_model = {}
 		ml_model['modelName'] = self.model_name
 		ml_model['modelVersion'] = self.model_version
-		ml_model['model'] = self.__model_serialize__(_model)
+		ml_model['modelID'] = model_id
 		ml_model['createdAt'] = datetime.datetime.utcnow()
-
-		# Use GridFS
-		try:
-			# try saving to db
-			db_ai.models.insert_one(ml_model)
-		except Exception as e:
-			# save to filesystem as .pkl file
-			_directory = './data'
-			if not os.path.exists(_directory):
-				os.makedirs(_directory)
-
-			_time = ml_model.get('createdAt')
-			_filename = '{}/{}_{}_{}.pkl'.format(_directory, self.model_name, self.model_version, _time)
-			with open(_filename, 'wb') as fh:
-				pickle.dump(ml_model, fh)
+		db_ai.models.insert_one(ml_model)
 
 		print(food_profiles)
-
+		_model_created_at = ml_model['createdAt']
+		self.__update_recommendations__(food_profiles, _model_created_at, db_main, db_ai)
