@@ -14,7 +14,7 @@ import string
 import pickle
 
 from utils.metrics import cosine_sim
-from utils.misc import sort_tuple
+from utils.misc import sort_tuple, get_traceback, logger
 
 from ..basic_model import basic_model
 
@@ -100,7 +100,7 @@ class lsa_v1_0_0(basic_model):
 
 	# Need implementation
 	def update_model(self, db_main, db_ai, fs_ai):
-		print('update_model() function called')
+		logger('NUCLEUS_RECOMMENDER', 'REQ', 'update_model() called for: {}_{}.'.format(self.model_name, self.model_version))
 
 		food_ids_list, food_list = self.__get_data__(db_ai)
 		food_profiles = self.__tf_idf__(food_list)
@@ -120,3 +120,4 @@ class lsa_v1_0_0(basic_model):
 		print(food_profiles)
 		_model_created_at = ml_model['createdAt']
 		self.__update_recommendations__(food_profiles, _model_created_at, db_main, db_ai)
+		logger('NUCLEUS_RECOMMENDER', 'EXE', 'Update of the model: {}_{} successful!'.format(self.model_name, self.model_version))
