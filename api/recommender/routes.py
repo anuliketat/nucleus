@@ -2,7 +2,7 @@ import time
 from flask import Blueprint, g, jsonify, request
 
 from .control import REControl
-from app.exceptions import NoClass, NoModule
+from api.exceptions import NoClass, NoModule
 
 blue_print = Blueprint('recommender', __name__, url_prefix='/recommender')
 

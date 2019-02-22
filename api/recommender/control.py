@@ -5,7 +5,7 @@ from flask import current_app as app
 
 # import inspect
 
-from app.exceptions import NoClass, NoModule
+from api.exceptions import NoClass, NoModule
 
 class REControl(object):
 	def __init__(self, db_main, db_ai, model_name, model_version):
@@ -18,7 +18,7 @@ class REControl(object):
 			# _ml_module = importlib.import_module(module_name)
 
 			# Load the module - https://www.blog.pythonlibrary.org/2016/05/27/python-201-an-intro-to-importlib/
-			module_name = 'app.recommender.ml' + '.' + model_name + '.' + model_name+'_'+model_version.replace('.', '_')
+			module_name = 'api.recommender.ml' + '.' + model_name + '.' + model_name+'_'+model_version.replace('.', '_')
 			module_spec = importlib.util.find_spec(module_name)
 			_ml_module = importlib.util.module_from_spec(module_spec)
 			module_spec.loader.exec_module(_ml_module)
@@ -48,4 +48,4 @@ class REControl(object):
 		# Use celery or gevent
 		self.model_class.update_model(self.db_main, self.db_ai)
 
-		return {'message': 'Model has been updated successfully!'}	
+		return {'message': 'Model has been updated successfully!'}
