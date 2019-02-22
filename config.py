@@ -1,43 +1,48 @@
 import os
 
-# Statement for enabling the development environment
+# Set the environment whether devopment, test or production
+# and configure according to that environment
+DEBUG = True if os.environ.get('DEBUG') == 'True' else False
+TESTING = True if os.environ.get('TESTING') == 'True' else False
 
-if os.environ and 'env' in os.environ and (os.environ['env'] == 'dev' or os.environ['env'] == 'staging'):
-	DEBUG = True
-else:
-	DEBUG = False
+ECOSYSTEM = os.environ.get('ECOSYSTEM')
+if ECOSYSTEM is None:
+    if DEBUG is True:
+        ECOSYSTEM = 'dev'
+    elif TESTING is True:
+        ECOSYSTEM = 'test'
+    else:
+        ECOSYSTEM = 'prod'
+if ECOSYSTEM not in ['dev', 'test', 'prod']:
+    raise ValueError("ECOSYSTEM has to be 'dev', 'test' or 'prod'")
 
-# Define the application directory
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-# Define the database - we are working with
-# SQLite for this example
-# SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(BASE_DIR, 'app.db')
-# DATABASE_CONNECT_OPTIONS = {}
-
-# Application threads. A common general assumption is
-# using 2 per available processor cores - to handle
-# incoming requests using one and performing background
-# operations using the other.
-THREADS_PER_PAGE = 2
-
-# Enable protection agains *Cross-site Request Forgery (CSRF)*
-CSRF_ENABLED = True
-
-# Use a secure, unique and absolutely secret key for
-# signing the data.
-CSRF_SESSION_KEY = "hjhrelaldkjiaefhjsalkdjaledlaskjdafijeijdfkaawdadfdawdassas21qwke1l231eqw"
-
-# Secret key for signing cookies
-SECRET_KEY = "q3jdladloei3eualksjfasdaadasdw3eafssldoisadxcvdfgr0ovskdjfkldl323djadcldsfjsdfd"
-
 # MongoDB conenction parameters
-# MONGO_DBNAME = "foodstreet"
-# MONGO_HOST = "localhost"
-# MONGO_PORT = 27017
-MONGO_URI_MAIN = "mongodb://localhost:27017/foodstreet"
-MONGO_URI_AI = "mongodb://localhost:27017/foodstreet_nucleus"
-# MONGO_URI = "mongodb://localhost:27017/"
+MONGO_HOST = os.environ.get('MONGO_HOST', '127.0.0.1')
+MONGO_PORT = os.environ.get('MONGO_PORT', '27017')
+MONGO_DB_MAIN = os.environ.get('MONGO_DB_MAIN', 'foodstreet')
+MONGO_DB_AI = os.environ.get('MONGO_DB_AI', 'foodstreet_nucleus')
 
-HASH_SECRET="qweauksdkh3ydskfjhlsfghgkuaa2easaezfiy89e9t0werouwkdjfnskeyro1eoi12e3iuhdq"
-TOKEN_EXPIRY = 605220
+if os.environ.get('MONGO_AUTH') == 'True':
+    MONGO_AUTH = True
+else:
+    MONGO_AUTH = False
+if MONGO_AUTH:
+    MONGO_USERNAME = os.environ.get('MONGO_USERNAME', 'foodstreet_nucleus')
+    MONGO_PASSWORD = os.environ.get('MONGO_PASSWORD')
+    MONGO_AUTH_SOURCE = os.environ.get('MONGO_AUTH_SOURCE', 'admin')
+
+MONGO_URI_MAIN = (
+             "mongodb://"
+             + MONGO_HOST + ":"
+             + MONGO_PORT + "/"
+             + MONGO_DB_MAIN
+            )
+MONGO_URI_AI = (
+             "mongodb://"
+             + MONGO_HOST + ":"
+             + MONGO_PORT + "/"
+             + MONGO_DB_AI
+            )
+
