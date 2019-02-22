@@ -44,5 +44,4 @@ class REControl(object):
 	def update_model(self):
 		# Use celery or gevent
 		self.model_class.update_model(self.db_main, self.db_ai)
-
 		return {'message': 'Model has been updated successfully!'}
