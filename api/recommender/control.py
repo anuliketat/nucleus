@@ -32,13 +32,10 @@ class REControl(object):
 				class_name = model_name + '_' + model_version.replace('.', '_')
 				_ml_class = getattr(_ml_module, class_name)
 				self.model_class = _ml_class()
-			except AttributeError:
-				print('Class does not exist')
-				raise NoClass(class_name)
+			except AttributeError as e:
+				raise NoClass(e, class_name)
 		except Exception as e:
-			print(e)
-			print('Module does not exist')
-			raise NoModule(module_name)
+			raise
 
 	def get_food_recommendations(self, user_id, N=-1, online=False):
 		food_items = self.model_class.get_food_recommendations(user_id, N, self.db_main, self.db_ai, online)
