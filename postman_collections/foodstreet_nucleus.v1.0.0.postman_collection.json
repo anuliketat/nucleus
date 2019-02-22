@@ -1,0 +1,92 @@
+{
+	"info": {
+		"_postman_id": "af8da7fe-4535-47f7-a3c3-c799767a31e9",
+		"name": "foodstreet_nucleus.v1.0.0",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "[Recommender] Update ML model",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "127.0.0.1:5000/recommender/update-model/lsa/v1.0.0",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5000",
+					"path": [
+						"recommender",
+						"update-model",
+						"lsa",
+						"v1.0.0"
+					]
+				},
+				"description": "Method to update the ML alogrithm and recompute the recommendations for the users"
+			},
+			"response": []
+		},
+		{
+			"name": "[Recommender] Get food-item recommendations",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": "127.0.0.1:5000/recommender/get-food-recommendations/abcd",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5000",
+					"path": [
+						"recommender",
+						"get-food-recommendations",
+						"abcd"
+					]
+				},
+				"description": "Get recommended food-items for users"
+			},
+			"response": []
+		},
+		{
+			"name": "Test message",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "127.0.0.1:5000/",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5000",
+					"path": [
+						""
+					]
+				},
+				"description": "Default route for checking if server is running"
+			},
+			"response": []
+		}
+	]
+}
