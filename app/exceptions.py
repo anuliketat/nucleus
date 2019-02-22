@@ -2,7 +2,7 @@ class NoClass(Exception):
 	def __init__(self, class_name):
 		self.class_name = class_name
 
-	def http_status(self): 
+	def http_status(self):
 		return 400
 
 	def __str__(self):
@@ -12,7 +12,7 @@ class NoModule(Exception):
 	def __init__(self, module_name):
 		self.module_name = module_name
 
-	def http_status(self): 
+	def http_status(self):
 		return 400
 
 	def __str__(self):
@@ -22,7 +22,7 @@ class NoModule(Exception):
 # 	def __init__(self, user_id):
 # 		self.user_id = user_id
 
-# 	def http_status(self): 
+# 	def http_status(self):
 # 		return 404
 
 # 	def __str__(self):

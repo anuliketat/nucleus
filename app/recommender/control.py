@@ -27,7 +27,7 @@ class REControl(object):
 			# 	print(name)
 			# 	if inspect.isclass(obj):
 			# 		print(obj)
-			
+
 			try:
 				class_name = model_name + '_' + model_version.replace('.', '_')
 				_ml_class = getattr(_ml_module, class_name)

@@ -1,3 +1,4 @@
+import os
 import datetime
 from bson.binary import Binary
 
@@ -9,7 +10,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import numpy as np
 from scipy.sparse.linalg import svds
 
-import string 
+import string
 import pickle
 
 from utils.metrics import cosine_sim
@@ -128,6 +129,6 @@ class lsa_v1_0_0(basic_model):
 			_filename = '{}/{}_{}_{}.pkl'.format(_directory, self.model_name, self.model_version, _time)
 			with open(_filename, 'wb') as fh:
 				pickle.dump(ml_model, fh)
-				
+
 		print(food_profiles)
 

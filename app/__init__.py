@@ -22,13 +22,13 @@ def register_blueprints(app):
 def register_middleware(app, mongo_main, mongo_ai):
     @app.before_request
     def before_request():
-        mongo_main.db.add_son_manipulator(UTF8Encoder())
-        mongo_main.db.add_son_manipulator(IDtoString())
+        # mongo_main.db.add_son_manipulator(UTF8Encoder())
+        # mongo_main.db.add_son_manipulator(IDtoString())
         # mongo_main.db.add_son_manipulator(StringtoID())
         g.db_main = mongo_main.db
 
-        mongo_ai.db.add_son_manipulator(UTF8Encoder())
-        mongo_ai.db.add_son_manipulator(IDtoString())
+        # mongo_ai.db.add_son_manipulator(UTF8Encoder())
+        # mongo_ai.db.add_son_manipulator(IDtoString())
         # mongo_ai.db.add_son_manipulator(StringtoID())
         g.db_ai = mongo_ai.db
 
@@ -53,11 +53,11 @@ def create_app(testing=False):
     app.config.from_object('config')
     # if testing:
         # app.config.from_object('config_testing')
-        
+
     # ESTABLISH & INJECT DB CONNECTION
     app.config["MONGO_URI"] = app.config["MONGO_URI_MAIN"]
     mongo_main = PyMongo(app)
-    
+
     app.config["MONGO_URI"] = app.config["MONGO_URI_AI"]
     mongo_ai = PyMongo(app)
 
