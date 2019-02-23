@@ -14,20 +14,6 @@ class NoClass(Exception):
 	def __str__(self):
 		return 'ERROR! Class: {} does not exist! Please check the model and version!'.format(self.class_name)
 
-class NoModule(Exception):
-	def __init__(self, e, module_name):
-		self.e = e
-		self.module_name = module_name
-
-	def http_status(self):
-		return 400
-
-	def traceback(self):
-		return get_traceback(self.e)
-
-	def __str__(self):
-		return 'ERROR! Module: {} does not exist! Please check the model and version!'.format(self.module_name)
-
 class NoModel(Exception):
 	def __init__(self, model_name, model_version):
 		self.model_name = model_name
