@@ -2,6 +2,8 @@
 # https://github.com/damnever/pigar
 
 # api/__init__.py: 3
+# api/mancio/control.py: 4
+# api/mancio/routes.py: 2
 # api/recommender/control.py: 4
 # api/recommender/routes.py: 2
 # utils/io.py: 3
@@ -16,20 +18,36 @@ matplotlib == 3.0.2
 # api/recommender/ml/lsa/lsa_v1_0_0.py: 5,6,7
 nltk == 3.4
 
+# api/mancio/ml/ses/ses_v1_0_0.py: 8
 # api/recommender/ml/lsa/lsa_v1_0_0.py: 10
+# utils/mase.py: 1
 # utils/metrics.py: 1,2
 numpy == 1.16.0
 
+# api/mancio/ml/ses/ses_v1_0_0.py: 9
+# utils/mase.py: 2
+pandas == 0.24.1
+
 # api/__init__.py: 5
+# api/mancio/ml/ses/ses_v1_0_0.py: 4
 # api/recommender/ml/lsa/lsa_v1_0_0.py: 3
 # utils/io.py: 2,4,5
 pymongo == 3.7.2
 
+# api/mancio/ml/ses/ses_v1_0_0.py: 12
+python_dateutil == 2.7.5
+
+# api/mancio/control.py: 2
 # api/recommender/control.py: 2
 requests == 2.18.4
 
+# api/mancio/ml/ses/ses_v1_0_0.py: 16
 # api/recommender/ml/lsa/lsa_v1_0_0.py: 9
 scikit_learn == 0.20.2
 
+# api/mancio/ml/ses/ses_v1_0_0.py: 14
 # api/recommender/ml/lsa/lsa_v1_0_0.py: 11
 scipy == 1.2.0
+
+## not detected by pigar
+statsmodels == 0.9.0
