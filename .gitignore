@@ -8,4 +8,5 @@ __pycache__/
 
 # Internal testing
 internal_testing/
-
+# Sample data
+data/
