@@ -1,4 +1,3 @@
-import os
 import datetime
 from bson.binary import Binary
 

@@ -3,8 +3,6 @@ import requests
 import importlib
 from flask import current_app as app
 
-# import inspect
-
 from api.exceptions import NoClass
 
 class MAControl(object):
@@ -15,19 +13,11 @@ class MAControl(object):
 		self.model_class = None
 
 		try:
-			# module_name = 'ml' + '.' + model_name + '.' + model_name+'_'+model_version.replace('.', '_')
-			# _ml_module = importlib.import_module(module_name)
-
 			# Load the module - https://www.blog.pythonlibrary.org/2016/05/27/python-201-an-intro-to-importlib/
 			module_name = 'api.mancio.ml' + '.' + model_name + '.' + model_name+'_'+model_version.replace('.', '_')
 			module_spec = importlib.util.find_spec(module_name)
 			_ml_module = importlib.util.module_from_spec(module_spec)
 			module_spec.loader.exec_module(_ml_module)
-
-			# for name, obj in inspect.getmembers(_ml_module):
-			# 	print(name)
-			# 	if inspect.isclass(obj):
-			# 		print(obj)
 
 			try:
 				class_name = model_name + '_' + model_version.replace('.', '_')
