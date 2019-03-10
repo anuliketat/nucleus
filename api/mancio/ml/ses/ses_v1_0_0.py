@@ -34,6 +34,7 @@ class ses_v1_0_0(basic_model):
                 )
         orders.time = pd.to_datetime(orders.time)
         ids_list = orders.item_id.unique()
+
         return ids_list
 
     def __get_data__(self, item_id, db_ai, kitchen_id=None, mode='daily'):
@@ -55,6 +56,7 @@ class ses_v1_0_0(basic_model):
             data = item.resample('D').sum().fillna(0)
         train = data[:int(0.9*(len(data)))]
         test = data[int(0.9*(len(data))):]
+
         return train, test, data
 
     def __ets__(self, ts_data, n_periods=2): #Exponential Smoothing function
@@ -65,6 +67,7 @@ class ses_v1_0_0(basic_model):
         """
         model = SimpleExpSmoothing(np.asarray(ts_data)).fit()
         forecast = np.int64(np.ceil(model.forecast(n_periods)))
+
         return model, forecast
 
     def update_model(self, db_main, db_ai, fs_ai, mode='daily'):

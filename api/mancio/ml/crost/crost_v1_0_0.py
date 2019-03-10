@@ -16,7 +16,7 @@ class crost_v1_0_0(basic_model):
     def __init__(self):
         self.model_name = 'crost'
         self.model_version = 'v1.0.0'
-    
+
     def __model_serialize__(self, model):
         return Binary(pickle.dumps(model, protocol=2))
 
@@ -37,11 +37,12 @@ class crost_v1_0_0(basic_model):
             data = orders.loc[orders['item_id'] == item_id].groupby('time')[['quantity']].sum()
             daily_data = data.resample('D').sum().fillna(0)
             zeros_data = daily_data.loc[daily_data.quantity == 0]
-            if len(zeros_data) < 8: #Croston is inappropriate for data that has no zero demand periods.[temp] 
+            if len(zeros_data) < 8: #Croston is inappropriate for data that has no zero demand periods.[temp]
                 continue
             else:
                 ids_list.append(item_id)
         ids_list.pop(-19) #temp
+
         return ids_list
 
     def __get_data__(self, item_id, db_ai, kitchen_id=None):
@@ -60,13 +61,13 @@ class crost_v1_0_0(basic_model):
         test = daily_data[int(0.95*(len(daily_data))):]
         non_zeros_train = train.loc[train.quantity != 0]
         data_train = data[train.index.min():train.index.max()]
-        
-        return non_zeros_train, data_train, test, data 
-    
+
+        return non_zeros_train, data_train, test, data
+
     def __ts_intervals__(self, non_zero_ts):
         """
             non_zero_ts - time series data with datetime index and non-zero values
-            returns inter demand interval time series 
+            returns inter demand interval time series
         """
         intervals_ts = []
         for i in range(0, len(non_zero_ts)-1):
@@ -74,13 +75,14 @@ class crost_v1_0_0(basic_model):
             d = d.days
             intervals_ts.append(d)
         intervals_ts.insert(0, 0)
+
         return intervals_ts
 
-    def __croston__(self, nonZerosTS, intvalsData, n_days = 2):
+    def __croston__(self, nonZerosTS, intvalsData, n_days=2):
         """
            non_zeros_ts - time series data with datetime index and non-zero values
            intervals_ts - inter demand interval time series
-           returns model dict and forecast 
+           returns model dict and forecast
         """
         model = {} #since there are two separate ses models
         intervals_ts = self.__ts_intervals__(intvalsData)
@@ -92,26 +94,25 @@ class crost_v1_0_0(basic_model):
         #forecast = np.int32(np.ceil(forecast))
         model['nonZeroSes'] = non_zeros_smoothing
         model['intervalSes'] = intervals_smoothing
+
         return model, forecast
-        
+
     def update_model(self, db_main, db_ai, fs_ai):
         logger('NUCLEUS_MANCIO', 'REQ', 'update_model() called for: {}_{}.'.format(self.model_name, self.model_version))
-        
+
         item_ids = self.__get_item_ids__()
 
         for item_id in item_ids:
             print('ID {}'.format(item_id))
-            non_zeros_train, data_train, test, data = self.__get_data__(item_id, db_ai, kitchen_id = None)
+            non_zeros_train, data_train, test, data = self.__get_data__(item_id, db_ai, kitchen_id=None)
             try:
                 m, test_pred = self.__croston__(nonZerosTS=non_zeros_train, intvalsData=data_train, n_days=len(test))
-                model, forecast = self.__croston__(nonZerosTS=data,intvalsData=data)
-            except ZeroDivisionError as e:
-                print('aicc calculation error', e)
-            except Exception as e:
+                model, forecast = self.__croston__(nonZerosTS=data, intvalsData=data)
+            except Exception:
                 raise
             #print('In the next {} days, demand is {} units'.format(round(forecast_intervals[0], 2), round(forecast_nonzero[0], 2)))
-            #This is "Important" as croston gives demand rate and not point forecasts. 
-            #The forecasts generated for the periods are based on the demand rate. 
+            #This is "Important" as croston gives demand rate and not point forecasts.
+            #The forecasts generated for the periods are based on the demand rate.
             residuals = test.quantity - test_pred
 
             metrics = {}
@@ -135,6 +136,6 @@ class crost_v1_0_0(basic_model):
             ml_model['metrics'] = metrics
             ml_model['createdAt'] = datetime.datetime.utcnow()
             db_ai.models.insert_one(ml_model)
-        
+
         logger('NUCLEUS_MANCIO', 'EXE', 'Update of the model: {}_{} successful!'.format(self.model_name, self.model_version))
 
