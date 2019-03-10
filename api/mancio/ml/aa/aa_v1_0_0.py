@@ -36,6 +36,7 @@ class aa_v1_0_0(basic_model):
                 )
         orders.time = pd.to_datetime(orders.time)
         ids_list = orders.item_id.unique()
+
         return ids_list
 
     def __get_data__(self, item_id, db_ai, kitchen_id=None, mode='daily'):
@@ -57,40 +58,42 @@ class aa_v1_0_0(basic_model):
             data = item.resample('D').sum().fillna(0)
         train = data[:int(0.9*(len(data)))]
         test = data[int(0.9*(len(data))):]
+
         return train, test, data
 
-    def __auto_arima__(self, ts_data, n_periods = 2): #Exponential Smoothing function
+    def __auto_arima__(self, ts_data, n_periods=2):
         """
-            ts_data - time series data with datetime index 
+            ts_data - time series data with datetime index
             n_periods - #periods to forecast
             returns model and forecasted values for the period.
         """
-        model = auto_arima(ts_data, error_action = 'ignore', suppress_warnings = True)
+        model = auto_arima(ts_data, error_action='ignore', suppress_warnings=True)
         model.fit(ts_data)
-        forecast = model.predict(n_periods = n_periods)
+        forecast = model.predict(n_periods=n_periods)
         forecast = np.int64(np.ceil(forecast))
         forecast = np.where(forecast < 0, 0, forecast)
+
         return model, forecast
 
-    def update_model(self, db_main, db_ai, fs_ai, mode = 'daily'):
+    def update_model(self, db_main, db_ai, fs_ai, mode='daily'):
         logger('NUCLEUS_MANCIO', 'REQ', 'update_model() called for: {}_{}.'.format(self.model_name, self.model_version))
-        
+
         item_ids = self.__get_item_ids__()
 
         for item_id in item_ids:
             print('ID {}'.format(item_id))
             if mode == 'weekly':
-                train, test, data = self.__get_data__(item_id, db_ai, mode ='weekly')
+                train, test, data = self.__get_data__(item_id, db_ai, mode='weekly')
             elif mode == 'monthly':
-                train, test, data = self.__get_data__(item_id, db_ai, mode ='monthly')
+                train, test, data = self.__get_data__(item_id, db_ai, mode='monthly')
             else:
                 train, test, data = self.__get_data__(item_id, db_ai)
-            
+
             try:
-                m, test_pred = self.__auto_arima__(train.quantity, n_periods = len(test))
+                m, test_pred = self.__auto_arima__(train.quantity, n_periods=len(test))
                 model, forecast = self.__auto_arima__(data.quantity)
             except Exception as e:
-                print(e)
+                raise
 
             residuals = m.resid()
 

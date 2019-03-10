@@ -33,6 +33,7 @@ class hw_v1_0_0(basic_model):
                 )
         orders.time = pd.to_datetime(orders.time)
         ids_list = orders.item_id.unique()
+
         return ids_list
 
     def __get_data__(self, item_id, db_ai, kitchen_id=None, mode='daily'):
@@ -54,45 +55,47 @@ class hw_v1_0_0(basic_model):
             data = item.resample('D').sum().fillna(0)
         train = data[:int(0.9*(len(data)))]
         test = data[int(0.9*(len(data))):]
+
         return train, test, data
 
-    def __hw__(self, ts_data, n_periods = 2, mode = 'daily'):
+    def __hw__(self, ts_data, n_periods=2, mode='daily'):
         """
             ts_data - time series data with datetime index
             n_periods - #periods to forecast
             returns model and forecasted values for the period.
         """
         if mode == 'weekly':
-            model = ExponentialSmoothing(np.asarray(ts_data['quantity']), seasonal_periods = 4, trend = 'add', seasonal = 'add').fit()
+            model = ExponentialSmoothing(np.asarray(ts_data['quantity']), seasonal_periods=4, trend='add', seasonal='add').fit()
         elif mode == 'monthly':
-            model = ExponentialSmoothing(np.asarray(ts_data['quantity']), seasonal_periods = 1, trend = 'add', seasonal = 'add').fit()
+            model = ExponentialSmoothing(np.asarray(ts_data['quantity']), seasonal_periods=1, trend='add', seasonal='add').fit()
         else:
-            model = ExponentialSmoothing(np.asarray(ts_data['quantity']), seasonal_periods = 30, trend = 'add', seasonal = 'add').fit()
-        
+            model = ExponentialSmoothing(np.asarray(ts_data['quantity']), seasonal_periods=30, trend='add', seasonal='add').fit()
+
         forecast = np.int64(np.ceil(model.forecast(steps = n_periods)))
         forecast = np.where(forecast < 0, 0, forecast)
+
         return model, forecast
 
-    def update_model(self, db_main, db_ai, fs_ai, mode = 'daily'):
+    def update_model(self, db_main, db_ai, fs_ai, mode='daily'):
         logger('NUCLEUS_MANCIO', 'REQ', 'update_model() called for: {}_{}.'.format(self.model_name, self.model_version))
-        
+
         item_ids = self.__get_item_ids__()
 
         for item_id in item_ids:
             print('Item ID: {}'.format(item_id))
             try:
                 if mode == 'weekly':
-                    train, test, data = self.__get_data__(item_id, db_ai, mode ='weekly')
-                    m, test_pred = self.__hw__(train, n_periods=len(test), mode = 'weekly')
+                    train, test, data = self.__get_data__(item_id, db_ai, mode='weekly')
+                    m, test_pred = self.__hw__(train, n_periods=len(test), mode='weekly')
                     model, forecast = self.__hw__(data, mode = 'weekly')
                 elif mode == 'monthly':
-                    train, test, data = self.__get_data__(item_id, db_ai, mode ='monthly')
-                    m, test_pred = self.__hw__(train, n_periods=len(test), mode = 'monthly')
+                    train, test, data = self.__get_data__(item_id, db_ai, mode='monthly')
+                    m, test_pred = self.__hw__(train, n_periods=len(test), mode='monthly')
                     model, forecast = self.__hw__(data, mode = 'monthly')
                 else:
                     train, test, data = self.__get_data__(item_id, db_ai)
                     m, test_pred = self.__hw__(train, n_periods=len(test))
-                    model, forecast = self.__hw__(data)   
+                    model, forecast = self.__hw__(data)
             except Exception:
                 raise
 
