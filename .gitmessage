@@ -3,16 +3,16 @@
 
 # --- COMMIT START ---
 # <type>: (If applied, this commit will...) <subject> (Max 50 char)
-# |<----  Using a maximum Of 50 Characters  ---->|
+# |<----  Using a maximum of 50 characters  ---->|
 
 
 # Explain why this change is being made
-# |<----   Try to limit Each line to a maximum Of 72 characters   ---->|
+# |<----   Try to limit each line to a maximum of 72 characters   ---->|
 
 
 # Provide links or keys to any relevant tickets, articles or other resources
 # Also mention the issues addressed or fixed through this commit (if any)
-# Example: Github issue #23 or Fixes #13
+# Example: Bitbucket issue #23 or Fixes #13
 
 
 # --- COMMIT END ---
