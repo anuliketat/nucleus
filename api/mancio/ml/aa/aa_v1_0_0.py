@@ -70,10 +70,29 @@ class aa_v1_0_0(basic_model):
         model = auto_arima(ts_data, error_action='ignore', suppress_warnings=True)
         model.fit(ts_data)
         forecast = model.predict(n_periods=n_periods)
-        forecast = np.int64(np.ceil(forecast))
-        forecast = np.where(forecast < 0, 0, forecast)
 
         return model, forecast
+
+    def __conf_int__(self, preds, std_err_data, alpha=0.20):
+        """
+            preds - forecasted time series dataframe
+            st_err_data - test data and predicted test dataframe
+            alpha - 0 to 1. Confidence intervals for the forecasted values. Default is 80%
+            returns lower and upper conf intervals for the forecasts
+        """
+        if alpha == 0.05: # 95% conf int
+            z_scr = 1.96
+        else:
+            z_scr = 1.28
+        
+        lower, upper = [], []
+        for i in preds.forecast:
+            a = i-z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5) 
+            b = i+z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5)
+            lower.append(a)
+            upper.append(b)
+        
+        return lower, upper
 
     def update_model(self, db_main, db_ai, fs_ai, mode='daily'):
         logger('NUCLEUS_MANCIO', 'REQ', 'update_model() called for: {}_{}.'.format(self.model_name, self.model_version))
@@ -81,7 +100,7 @@ class aa_v1_0_0(basic_model):
         item_ids = self.__get_item_ids__()
 
         for item_id in item_ids:
-            print('ID {}'.format(item_id))
+            print('Item ID: {}'.format(item_id))
             if mode == 'weekly':
                 train, test, data = self.__get_data__(item_id, db_ai, mode='weekly')
             elif mode == 'monthly':
@@ -94,6 +113,14 @@ class aa_v1_0_0(basic_model):
                 model, forecast = self.__auto_arima__(data.quantity)
             except Exception as e:
                 raise
+
+            test_preds = pd.DataFrame({'pred':test_pred, 'actual':test.quantity}, index=test.index)
+            dates = pd.date_range(start=test.index.max()+datetime.timedelta(days=1), periods=2, freq='D')
+            forecast = pd.DataFrame(forecast, index=dates, columns=['forecast'])
+            forecast['yhat_lower'], forecast['yhat_upper'] = self.__conf_int__(preds=forecast,std_err_data=test_preds)
+            for col in forecast.columns:
+                forecast[col] = np.where(forecast[col]<0,0,forecast[col])
+                forecast[col] = np.int64(np.ceil(forecast[col]))
 
             residuals = m.resid()
 
@@ -109,6 +136,7 @@ class aa_v1_0_0(basic_model):
             _model['forecast'] = forecast
             _model['residuals'] = residuals
             _model['model'] = model
+            _model['summary'] = m.summary()
             model_id = fs_ai.put(self.__model_serialize__(_model))
 
             ml_model = {}

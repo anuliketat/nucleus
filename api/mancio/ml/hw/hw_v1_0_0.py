@@ -71,10 +71,30 @@ class hw_v1_0_0(basic_model):
         else:
             model = ExponentialSmoothing(np.asarray(ts_data['quantity']), seasonal_periods=30, trend='add', seasonal='add').fit()
 
-        forecast = np.int64(np.ceil(model.forecast(steps = n_periods)))
-        forecast = np.where(forecast < 0, 0, forecast)
+        forecast = model.forecast(steps = n_periods)
 
         return model, forecast
+
+    def __conf_int__(self, preds, std_err_data, alpha=0.20):
+        """
+            preds - forecasted time series dataframe
+            st_err_data - test data and predicted test dataframe
+            alpha - 0 to 1. Confidence intervals for the forecasted values. Default is 80%
+            returns lower and upper conf intervals for the forecasts
+        """
+        if alpha == 0.05: # 95% conf int
+            z_scr = 1.96
+        else:
+            z_scr = 1.28
+        
+        lower, upper = [], []
+        for i in preds.forecast:
+            a = i-z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5) 
+            b = i+z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5)
+            lower.append(a)
+            upper.append(b)
+        
+        return lower, upper
 
     def update_model(self, db_main, db_ai, fs_ai, mode='daily'):
         logger('NUCLEUS_MANCIO', 'REQ', 'update_model() called for: {}_{}.'.format(self.model_name, self.model_version))
@@ -99,6 +119,14 @@ class hw_v1_0_0(basic_model):
             except Exception:
                 raise
 
+            test_preds = pd.DataFrame({'pred':test_pred, 'actual':test.quantity}, index=test.index)
+            dates = pd.date_range(start=test.index.max()+datetime.timedelta(days=1), periods=2, freq='D')
+            forecast = pd.DataFrame(forecast, index=dates, columns=['forecast'])
+            forecast['yhat_lower'], forecast['yhat_upper'] = self.__conf_int__(preds=forecast,std_err_data=test_preds)
+            for col in forecast.columns:
+                forecast[col] = np.where(forecast[col]<0,0,forecast[col])
+                forecast[col] = np.int64(np.ceil(forecast[col]))
+                
             residuals = test.quantity - test_pred
 
             metrics = {}
