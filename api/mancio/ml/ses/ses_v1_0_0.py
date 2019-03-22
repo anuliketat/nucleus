@@ -81,14 +81,14 @@ class ses_v1_0_0(basic_model):
             z_scr = 1.96
         else:
             z_scr = 1.28
-        
+
         lower, upper = [], []
         for i in preds.forecast:
-            a = i-z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5) 
+            a = i-z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5)
             b = i+z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5)
             lower.append(a)
             upper.append(b)
-        
+
         return lower, upper
 
     def update_model(self, db_main, db_ai, fs_ai, mode='daily'):
@@ -114,11 +114,11 @@ class ses_v1_0_0(basic_model):
             test_preds = pd.DataFrame({'pred':test_pred, 'actual':test.quantity}, index=test.index)
             dates = pd.date_range(start=test.index.max()+datetime.timedelta(days=1), periods=2, freq='D')
             forecast = pd.DataFrame(forecast, index=dates, columns=['forecast'])
-            forecast['yhat_lower'], forecast['yhat_upper'] = self.__conf_int__(preds=forecast,std_err_data=test_preds)
+            forecast['yhat_lower'], forecast['yhat_upper'] = self.__conf_int__(preds=forecast, std_err_data=test_preds)
             for col in forecast.columns:
-                forecast[col] = np.where(forecast[col]<0,0,forecast[col])
+                forecast[col] = np.where(forecast[col]<0, 0, forecast[col])
                 forecast[col] = np.int64(np.ceil(forecast[col]))
-                
+
             residuals = m.resid
 
             metrics = {}
