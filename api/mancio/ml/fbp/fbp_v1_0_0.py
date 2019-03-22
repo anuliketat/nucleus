@@ -111,9 +111,9 @@ class fbp_v1_0_0(basic_model):
             metrics = {}
             #metrics['aic'] = m.aic
             #metrics['bic'] = m.bic
-            metrics['mse'] = round(mean_squared_error(test.y, test_pred.yhat), 3)
-            metrics['mae'] = round(mean_absolute_error(test.y, test_pred.yhat), 3)
-            metrics['mase'] = round(mase(test.y, test_pred.yhat), 3)
+            metrics['mse'] = mean_squared_error(test.y, test_pred.yhat)
+            metrics['mae'] = mean_absolute_error(test.y, test_pred.yhat)
+            metrics['mase'] = mase(test.y, test_pred.yhat)
 
             _model = {}
             _model['data'] = data

@@ -147,9 +147,9 @@ class crost_v1_0_0(basic_model):
             metrics = {}
             #metrics['aic'] = m.aic
             #metrics['bic'] = m.bic
-            metrics['mse'] = round(mean_squared_error(test.quantity, test_pred), 3)
-            metrics['mae'] = round(mean_absolute_error(test.quantity, test_pred), 3)
-            metrics['mase'] = round(mase(test.quantity, test_pred), 3)
+            metrics['mse'] = mean_squared_error(test.quantity, test_pred)
+            metrics['mae'] = mean_absolute_error(test.quantity, test_pred)
+            metrics['mase'] = mase(test.quantity, test_pred)
 
             _model = {}
             _model['data'] = data
