@@ -2,6 +2,7 @@ import pickle
 from bson.binary import Binary
 from utils.misc import logger
 from utils.mase import mase
+from utils.z_score import z_score
 
 import numpy as np
 import pandas as pd
@@ -82,11 +83,7 @@ class hw_v1_0_0(basic_model):
             alpha - 0 to 1. Confidence intervals for the forecasted values. Default is 80%
             returns lower and upper conf intervals for the forecasts
         """
-        if alpha == 0.05: # 95% conf int
-            z_scr = 1.96
-        else:
-            z_scr = 1.28
-
+        z_scr = z_score(alpha)
         lower, upper = [], []
         for i in preds.forecast:
             a = i-z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5)
