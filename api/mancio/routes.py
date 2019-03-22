@@ -11,9 +11,14 @@ blue_print = Blueprint('mancio', __name__, url_prefix='/mancio')
 def update_model(model_name, model_version):
 	start_time = time.time()
 
+	allowed_modes = ['daily', 'weekly', 'monthly']
+	mode = request.args.get('mode', 'daily').lower()
+	if mode not in allowed_modes:
+		mode = 'daily'
+
 	try:
 		forecast_engine = MAControl(g.db_main, g.db_ai, g.fs_ai, model_name, model_version)
-		response = forecast_engine.update_model()
+		response = forecast_engine.update_model(mode)
 	except NoClass as e:
 		logger('NUCLEUS_MANCIO', 'ERR', e.traceback())
 		logger('NUCLEUS_MANCIO', 'ERR', e.__str__())

@@ -118,7 +118,7 @@ class crost_v1_0_0(basic_model):
         
         return lower, upper
 
-    def update_model(self, db_main, db_ai, fs_ai):
+    def update_model(self, db_main, db_ai, fs_ai, mode='daily'):
         logger('NUCLEUS_MANCIO', 'REQ', 'update_model() called for: {}_{}.'.format(self.model_name, self.model_version))
 
         item_ids = self.__get_item_ids__()

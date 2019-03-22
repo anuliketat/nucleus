@@ -28,7 +28,7 @@ class MAControl(object):
 		except Exception as e:
 			raise
 
-	def update_model(self):
+	def update_model(self, mode):
 		# Use celery or gevent
-		self.model_class.update_model(self.db_main, self.db_ai, self.fs_ai)
+		self.model_class.update_model(self.db_main, self.db_ai, self.fs_ai, mode)
 		return {'message': 'Model has been updated successfully!'}
