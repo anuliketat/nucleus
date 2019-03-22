@@ -138,6 +138,7 @@ class ses_v1_0_0(basic_model):
             ml_model['modelVersion'] = self.model_version
             ml_model['modelID'] = model_id
             ml_model['metrics'] = metrics
+            ml_model['mode'] = mode
             ml_model['createdAt'] = datetime.datetime.utcnow()
             db_ai.models.insert_one(ml_model)
 
