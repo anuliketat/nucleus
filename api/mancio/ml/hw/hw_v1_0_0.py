@@ -37,7 +37,7 @@ class hw_v1_0_0(basic_model):
 
         return ids_list
 
-    def __get_data__(self, item_id, db_ai, kitchen_id=None, mode='daily'):
+    def __get_data__(self, item_id, db_ai, kitchen_id=None, mode='D'):
         orders = pd.read_csv('./data/orders_data.csv', index_col=0,
                     dtype = {'order_id': object,
                         'item_id': np.int32,
@@ -47,27 +47,22 @@ class hw_v1_0_0(basic_model):
                 )
         orders.time = pd.to_datetime(orders.time)
 
-        item = orders.loc[orders['item_id'] == item_id].groupby('time')[['quantity']].sum()
-        if mode == 'weekly':
-            data = item.resample('W').sum().fillna(0)
-        elif mode == 'monthly':
-            data = item.resample('M').sum().fillna(0)
-        else:
-            data = item.resample('D').sum().fillna(0)
+        item = orders.loc[orders['item_id']==item_id].groupby('time')[['quantity']].sum()
+        data = item.resample(mode).sum().fillna(0)
         train = data[:int(0.9*(len(data)))]
         test = data[int(0.9*(len(data))):]
 
         return train, test, data
 
-    def __hw__(self, ts_data, n_periods=2, mode='daily'):
+    def __hw__(self, ts_data, n_periods=2, mode='D'):
         """
             ts_data - time series data with datetime index
             n_periods - #periods to forecast
             returns model and forecasted values for the period.
         """
-        if mode == 'weekly':
+        if mode == 'W':
             model = ExponentialSmoothing(np.asarray(ts_data['quantity']), seasonal_periods=4, trend='add', seasonal='add').fit()
-        elif mode == 'monthly':
+        elif mode == 'M':
             model = ExponentialSmoothing(np.asarray(ts_data['quantity']), seasonal_periods=1, trend='add', seasonal='add').fit()
         else:
             model = ExponentialSmoothing(np.asarray(ts_data['quantity']), seasonal_periods=30, trend='add', seasonal='add').fit()
@@ -93,31 +88,22 @@ class hw_v1_0_0(basic_model):
 
         return lower, upper
 
-    def update_model(self, db_main, db_ai, fs_ai, mode='daily'):
+    def update_model(self, db_main, db_ai, fs_ai, mode='D'):
         logger('NUCLEUS_MANCIO', 'REQ', 'update_model() called for: {}_{}.'.format(self.model_name, self.model_version))
 
         item_ids = self.__get_item_ids__()
 
         for item_id in item_ids:
-            print('Item ID: {}'.format(item_id))
+            print('\nItem ID:', item_id)
+            train, test, data = self.__get_data__(item_id, db_ai, mode=mode)
             try:
-                if mode == 'weekly':
-                    train, test, data = self.__get_data__(item_id, db_ai, mode='weekly')
-                    m, test_pred = self.__hw__(train, n_periods=len(test), mode='weekly')
-                    model, forecast = self.__hw__(data, mode = 'weekly')
-                elif mode == 'monthly':
-                    train, test, data = self.__get_data__(item_id, db_ai, mode='monthly')
-                    m, test_pred = self.__hw__(train, n_periods=len(test), mode='monthly')
-                    model, forecast = self.__hw__(data, mode = 'monthly')
-                else:
-                    train, test, data = self.__get_data__(item_id, db_ai)
-                    m, test_pred = self.__hw__(train, n_periods=len(test))
-                    model, forecast = self.__hw__(data)
-            except Exception:
-                raise
+                m, test_pred = self.__hw__(train, n_periods=len(test), mode=mode)
+                model, forecast = self.__hw__(data, mode=mode)
+            except Exception as e:
+                print(e)
 
             test_preds = pd.DataFrame({'pred':test_pred, 'actual':test.quantity}, index=test.index)
-            dates = pd.date_range(start=test.index.max()+datetime.timedelta(days=1), periods=2, freq='D')
+            dates = pd.date_range(start=test.index.max()+datetime.timedelta(days=1), periods=len(forecast), freq=mode)
             forecast = pd.DataFrame(forecast, index=dates, columns=['forecast'])
             forecast['yhat_lower'], forecast['yhat_upper'] = self.__conf_int__(preds=forecast, std_err_data=test_preds)
             for col in forecast.columns:
@@ -148,6 +134,5 @@ class hw_v1_0_0(basic_model):
             ml_model['mode'] = mode
             ml_model['createdAt'] = datetime.datetime.utcnow()
             db_ai.models.insert_one(ml_model)
-            print('Updated {} for ID {}'.format(self.model_name, item_id))
 
         logger('NUCLEUS_MANCIO', 'EXE', 'Update of the model: {}_{} successful!'.format(self.model_name, self.model_version))

@@ -40,7 +40,7 @@ class aa_v1_0_0(basic_model):
 
         return ids_list
 
-    def __get_data__(self, item_id, db_ai, kitchen_id=None, mode='daily'):
+    def __get_data__(self, item_id, db_ai, kitchen_id=None, mode='D'):
         orders = pd.read_csv('./data/orders_data.csv', index_col=0,
                     dtype = {'order_id': object,
                         'item_id': np.int32,
@@ -51,12 +51,7 @@ class aa_v1_0_0(basic_model):
         orders.time = pd.to_datetime(orders.time)
 
         item = orders.loc[orders['item_id'] == item_id].groupby('time')[['quantity']].sum()
-        if mode == 'weekly':
-            data = item.resample('W').sum().fillna(0)
-        elif mode == 'monthly':
-            data = item.resample('M').sum().fillna(0)
-        else:
-            data = item.resample('D').sum().fillna(0)
+        data = item.resample(mode).sum().fillna(0)
         train = data[:int(0.9*(len(data)))]
         test = data[int(0.9*(len(data))):]
 
@@ -91,28 +86,22 @@ class aa_v1_0_0(basic_model):
 
         return lower, upper
 
-    def update_model(self, db_main, db_ai, fs_ai, mode='daily'):
+    def update_model(self, db_main, db_ai, fs_ai, mode='D'):
         logger('NUCLEUS_MANCIO', 'REQ', 'update_model() called for: {}_{}.'.format(self.model_name, self.model_version))
 
         item_ids = self.__get_item_ids__()
 
         for item_id in item_ids:
             print('Item ID: {}'.format(item_id))
-            if mode == 'weekly':
-                train, test, data = self.__get_data__(item_id, db_ai, mode='weekly')
-            elif mode == 'monthly':
-                train, test, data = self.__get_data__(item_id, db_ai, mode='monthly')
-            else:
-                train, test, data = self.__get_data__(item_id, db_ai)
-
+            train, test, data = self.__get_data__(item_id, db_ai, mode=mode)
             try:
                 m, test_pred = self.__auto_arima__(train.quantity, n_periods=len(test))
                 model, forecast = self.__auto_arima__(data.quantity)
             except Exception as e:
-                raise
+                print(e)
 
             test_preds = pd.DataFrame({'pred':test_pred, 'actual':test.quantity}, index=test.index)
-            dates = pd.date_range(start=test.index.max()+datetime.timedelta(days=1), periods=2, freq='D')
+            dates = pd.date_range(start=test.index.max()+datetime.timedelta(days=1), periods=len(forecast), freq=mode)
             forecast = pd.DataFrame(forecast, index=dates, columns=['forecast'])
             forecast['yhat_lower'], forecast['yhat_upper'] = self.__conf_int__(preds=forecast, std_err_data=test_preds)
             for col in forecast.columns:

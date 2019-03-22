@@ -46,7 +46,7 @@ class crost_v1_0_0(basic_model):
 
         return ids_list
 
-    def __get_data__(self, item_id, db_ai, kitchen_id=None):
+    def __get_data__(self, item_id, db_ai, kitchen_id=None, mode='D'):
         orders = pd.read_csv('./data/orders_full.csv', index_col=0,
                     dtype = {'order_id': object,
                         'item_id': np.int32,
@@ -56,11 +56,11 @@ class crost_v1_0_0(basic_model):
                 )
         orders.time = pd.to_datetime(orders.time)
 
-        data = orders.loc[orders['item_id'] == item_id].groupby('time')[['quantity']].sum()
-        daily_data = data.resample('D').sum().fillna(0)
+        data = orders.loc[orders['item_id']==item_id].groupby('time')[['quantity']].sum()
+        daily_data = data.resample(mode).sum().fillna(0)
         train = daily_data[:int(0.95*(len(daily_data)))]
         test = daily_data[int(0.95*(len(daily_data))):]
-        non_zeros_train = train.loc[train.quantity != 0]
+        non_zeros_train = train.loc[train.quantity!=0]
         data_train = data[train.index.min():train.index.max()]
 
         return non_zeros_train, data_train, test, data
@@ -79,7 +79,7 @@ class crost_v1_0_0(basic_model):
 
         return intervals_ts
 
-    def __croston__(self, nonZerosTS, intvalsData, n_days=2):
+    def __croston__(self, nonZerosTS, intvalsData, n_periods=2):
         """
            non_zeros_ts - time series data with datetime index and non-zero values
            intervals_ts - inter demand interval time series
@@ -89,8 +89,8 @@ class crost_v1_0_0(basic_model):
         intervals_ts = self.__ts_intervals__(intvalsData)
         non_zeros_smoothing = SimpleExpSmoothing(np.asarray(nonZerosTS)).fit()
         intervals_smoothing = SimpleExpSmoothing(np.asarray(intervals_ts)).fit()
-        non_zero_forecasts = non_zeros_smoothing.forecast(n_days)
-        interval_forecasts = intervals_smoothing.forecast(n_days)
+        non_zero_forecasts = non_zeros_smoothing.forecast(n_periods)
+        interval_forecasts = intervals_smoothing.forecast(n_periods)
         forecast = non_zero_forecasts/interval_forecasts
         #forecast = np.int32(np.ceil(forecast))
         model['nonZeroSes'] = non_zeros_smoothing
@@ -115,24 +115,24 @@ class crost_v1_0_0(basic_model):
 
         return lower, upper
 
-    def update_model(self, db_main, db_ai, fs_ai, mode='daily'):
+    def update_model(self, db_main, db_ai, fs_ai, mode='D'):
         logger('NUCLEUS_MANCIO', 'REQ', 'update_model() called for: {}_{}.'.format(self.model_name, self.model_version))
 
         item_ids = self.__get_item_ids__()
 
         for item_id in item_ids:
-            print('ID {}'.format(item_id))
-            non_zeros_train, data_train, test, data = self.__get_data__(item_id, db_ai, kitchen_id=None)
+            print('Item ID:', item_id)
+            non_zeros_train, data_train, test, data = self.__get_data__(item_id, db_ai, kitchen_id=None, mode=mode)
             try:
-                m, test_pred = self.__croston__(nonZerosTS=non_zeros_train, intvalsData=data_train, n_days=len(test))
+                m, test_pred = self.__croston__(nonZerosTS=non_zeros_train, intvalsData=data_train, n_periods=len(test))
                 model, forecast = self.__croston__(nonZerosTS=data, intvalsData=data)
-            except Exception:
-                raise
+            except Exception as e:
+                print(e)
             #print('In the next {} days, demand is {} units'.format(round(forecast_intervals[0], 2), round(forecast_nonzero[0], 2)))
             #This is "Important" as croston gives demand rate and not point forecasts.
             #The forecasts generated for the periods are based on the demand rate.
             test_preds = pd.DataFrame({'pred':test_pred, 'actual':test.quantity}, index=test.index)
-            dates = pd.date_range(start=test.index.max()+datetime.timedelta(days=1), periods=2, freq='D')
+            dates = pd.date_range(start=test.index.max()+datetime.timedelta(days=1), periods=len(forecast), freq=mode)
             forecast = pd.DataFrame(forecast, index=dates, columns=['forecast'])
             forecast['yhat_lower'], forecast['yhat_upper'] = self.__conf_int__(preds=forecast, std_err_data=test_preds)
             for col in forecast.columns:

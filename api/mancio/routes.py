@@ -11,10 +11,10 @@ blue_print = Blueprint('mancio', __name__, url_prefix='/mancio')
 def update_model(model_name, model_version):
 	start_time = time.time()
 
-	allowed_modes = ['daily', 'weekly', 'monthly']
-	mode = request.args.get('mode', 'daily').lower()
+	allowed_modes = ['D', 'W', 'M']
+	mode = request.args.get('mode', 'D').upper()
 	if mode not in allowed_modes:
-		mode = 'daily'
+		mode = 'D'
 
 	try:
 		mancio_engine = MAControl(g.db_main, g.db_ai, g.fs_ai, model_name, model_version)
