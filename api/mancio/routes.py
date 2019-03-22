@@ -17,8 +17,8 @@ def update_model(model_name, model_version):
 		mode = 'daily'
 
 	try:
-		forecast_engine = MAControl(g.db_main, g.db_ai, g.fs_ai, model_name, model_version)
-		response = forecast_engine.update_model(mode)
+		mancio_engine = MAControl(g.db_main, g.db_ai, g.fs_ai, model_name, model_version)
+		response = mancio_engine.update_model(mode)
 	except NoClass as e:
 		logger('NUCLEUS_MANCIO', 'ERR', e.traceback())
 		logger('NUCLEUS_MANCIO', 'ERR', e.__str__())
