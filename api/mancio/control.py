@@ -4,6 +4,7 @@ import importlib
 from flask import current_app as app
 
 from api.exceptions import NoClass
+from utils.misc import logger
 
 class MAControl(object):
 	def __init__(self, db_main, db_ai, fs_ai, model_name, model_version):
@@ -30,5 +31,7 @@ class MAControl(object):
 
 	def update_model(self, mode):
 		# Use celery or gevent
+		logger('NUCLEUS_MANCIO', 'REQ', 'update_model() called for: {}_{} with mode={}.'.format(self.model_class.model_name, self.model_class.model_version, mode))
 		self.model_class.update_model(self.db_main, self.db_ai, self.fs_ai, mode)
+		logger('NUCLEUS_MANCIO', 'EXE', 'Update of the model: {}_{} with mode={} successful!'.format(self.model_class.model_name, self.model_class.model_version, mode))
 		return {'message': 'Model has been updated successfully!'}

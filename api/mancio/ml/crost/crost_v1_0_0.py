@@ -117,8 +117,6 @@ class crost_v1_0_0(basic_model):
         return lower, upper
 
     def update_model(self, db_main, db_ai, fs_ai, mode='D'):
-        logger('NUCLEUS_MANCIO', 'REQ', 'update_model() called for: {}_{}.'.format(self.model_name, self.model_version))
-
         item_ids = self.__get_item_ids__()
 
         for item_id in item_ids:
@@ -167,6 +165,3 @@ class crost_v1_0_0(basic_model):
             ml_model['mode'] = mode
             ml_model['createdAt'] = datetime.datetime.utcnow()
             db_ai.models.insert_one(ml_model)
-
-        logger('NUCLEUS_MANCIO', 'EXE', 'Update of the model: {}_{} successful!'.format(self.model_name, self.model_version))
-
