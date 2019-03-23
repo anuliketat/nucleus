@@ -1,5 +1,8 @@
-import os, sys
+import os
+import sys
+
 from api import app
+
 # import nose2
 
 if __name__ == '__main__':

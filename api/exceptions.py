@@ -1,5 +1,6 @@
 from utils.misc import get_traceback
 
+
 class NoClass(Exception):
 	def __init__(self, e, class_name):
 		self.e = e

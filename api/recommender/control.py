@@ -1,11 +1,12 @@
 import datetime
-import requests
 import importlib
-from flask import current_app as app
-
 # import inspect
 
+import requests
+from flask import current_app as app
+
 from api.exceptions import NoClass
+
 
 class REControl(object):
 	def __init__(self, db_main, db_ai, fs_ai, model_name, model_version):

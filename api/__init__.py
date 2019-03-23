@@ -1,8 +1,10 @@
 import os
 from importlib import import_module
-from flask import Flask, g, request, jsonify
+
+from flask import Flask, g, jsonify, request
 from flask_pymongo import PyMongo
 from gridfs import GridFS
+
 
 def register_blueprints(app):
     current_directory = os.path.abspath(os.path.dirname(__file__))

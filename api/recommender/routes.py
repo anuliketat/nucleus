@@ -1,9 +1,11 @@
 import time
+
 from flask import Blueprint, g, jsonify, request
 
-from .control import REControl
 from api.exceptions import NoClass
 from utils.misc import get_traceback, logger
+
+from .control import REControl
 
 blue_print = Blueprint('recommender', __name__, url_prefix='/recommender')
 

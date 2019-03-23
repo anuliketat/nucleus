@@ -12,4 +12,3 @@ class basic_model(object):
 	def update_model(self):
 		# print('basic_model update_model()')
 		pass
-

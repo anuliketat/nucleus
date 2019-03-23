@@ -1,8 +1,10 @@
 import os
-from pymongo.son_manipulator import SONManipulator
-from flask import jsonify
-from bson.objectid import ObjectId
+
 from bson.binary import Binary
+from bson.objectid import ObjectId
+from flask import jsonify
+from pymongo.son_manipulator import SONManipulator
+
 
 class UTF8Encoder(SONManipulator):
     def transform_outgoing(self, son, collection):

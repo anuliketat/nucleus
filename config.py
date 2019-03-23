@@ -45,4 +45,3 @@ MONGO_URI_AI = (
              + MONGO_PORT + "/"
              + MONGO_DB_AI
             )
-

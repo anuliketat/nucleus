@@ -1,18 +1,19 @@
-import pandas as pd
-import numpy as np
 import datetime
+import pickle
 
+import numpy as np
+import pandas as pd
 from bson.binary import Binary
-from utils.misc import get_traceback, logger
-from utils.mase import mase
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from fbprophet import Prophet
 from fbprophet.diagnostics import cross_validation, performance_metrics
 from fbprophet.plot import plot_cross_validation_metric
+from utils.mase import mase
+from utils.misc import get_traceback, logger
 
-import pickle
-from sklearn.metrics import mean_squared_error, mean_absolute_error
 from ..basic_model import basic_model
+
 
 class fbp_v1_0_0(basic_model):
     def __init__(self):

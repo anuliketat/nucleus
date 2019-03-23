@@ -1,21 +1,20 @@
 import datetime
-from bson.binary import Binary
+import pickle
+import string
 
+import numpy as np
+from bson.binary import Binary
 from nltk import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
-
-from sklearn.feature_extraction.text import TfidfVectorizer
-import numpy as np
 from scipy.sparse.linalg import svds
-
-import string
-import pickle
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 from utils.metrics import cosine_sim
-from utils.misc import sort_tuple, get_traceback, logger
+from utils.misc import get_traceback, logger, sort_tuple
 
 from ..basic_model import basic_model
+
 
 class lsa_v1_0_0(basic_model):
 	def __init__(self):

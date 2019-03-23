@@ -1,9 +1,11 @@
 import time
+
 from flask import Blueprint, g, jsonify, request
 
-from .control import MAControl
 from api.exceptions import NoClass
 from utils.misc import get_traceback, logger
+
+from .control import MAControl
 
 blue_print = Blueprint('mancio', __name__, url_prefix='/mancio')
 
