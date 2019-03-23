@@ -101,6 +101,7 @@ class hw_v1_0_0(basic_model):
                 model, forecast = self.__hw__(data, mode=mode)
             except Exception as e:
                 print(e)
+                continue
 
             test_preds = pd.DataFrame({'pred':test_pred, 'actual':test.quantity}, index=test.index)
             dates = pd.date_range(start=test.index.max()+datetime.timedelta(days=1), periods=len(forecast), freq=mode)

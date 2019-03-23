@@ -129,6 +129,8 @@ class crost_v1_0_0(basic_model):
                 model, forecast = self.__croston__(nonZerosTS=data, intvalsData=data)
             except Exception as e:
                 print(e)
+                continue
+
             #print('In the next {} days, demand is {} units'.format(round(forecast_intervals[0], 2), round(forecast_nonzero[0], 2)))
             #This is "Important" as croston gives demand rate and not point forecasts.
             #The forecasts generated for the periods are based on the demand rate.

@@ -95,6 +95,7 @@ class fbp_v1_0_0(basic_model):
                 model, forecast = self.__fbp__(data)
             except Exception as e:
                 print(e)
+                continue
 
             residuals = test.y - test_pred.yhat
             metrics = {}
