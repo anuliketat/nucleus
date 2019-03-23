@@ -3,7 +3,7 @@ import numpy as np
 import datetime
 
 from bson.binary import Binary
-from utils.misc import logger
+from utils.misc import get_traceback, logger
 from utils.mase import mase
 
 from fbprophet import Prophet
@@ -94,7 +94,8 @@ class fbp_v1_0_0(basic_model):
                 m, test_pred = self.__fbp__(train, n_periods=len(test))
                 model, forecast = self.__fbp__(data)
             except Exception as e:
-                print(e)
+                logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
+                logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
                 continue
 
             residuals = test.y - test_pred.yhat

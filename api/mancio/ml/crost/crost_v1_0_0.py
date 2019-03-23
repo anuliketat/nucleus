@@ -7,7 +7,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 from statsmodels.tsa.api import SimpleExpSmoothing
 
 from bson.binary import Binary
-from utils.misc import logger
+from utils.misc import get_traceback, logger
 from utils.mase import mase
 from utils.z_score import z_score
 
@@ -128,7 +128,8 @@ class crost_v1_0_0(basic_model):
                 m, test_pred = self.__croston__(nonZerosTS=non_zeros_train, intvalsData=data_train, n_periods=len(test))
                 model, forecast = self.__croston__(nonZerosTS=data, intvalsData=data)
             except Exception as e:
-                print(e)
+                logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
+                logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
                 continue
 
             #print('In the next {} days, demand is {} units'.format(round(forecast_intervals[0], 2), round(forecast_nonzero[0], 2)))

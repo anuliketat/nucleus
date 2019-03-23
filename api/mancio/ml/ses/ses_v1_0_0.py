@@ -8,7 +8,7 @@ import pandas as pd
 
 import pickle
 
-from utils.misc import logger
+from utils.misc import get_traceback, logger
 from utils.mase import mase
 from utils.z_score import z_score
 
@@ -95,7 +95,8 @@ class ses_v1_0_0(basic_model):
                 m, test_pred = self.__ets__(train, n_periods=len(test))
                 model, forecast = self.__ets__(data)
             except Exception as e:
-                print(e)
+                logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
+                logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
                 continue
 
             test_preds = pd.DataFrame({'pred':test_pred, 'actual':test.quantity}, index=test.index)
