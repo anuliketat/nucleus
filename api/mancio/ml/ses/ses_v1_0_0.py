@@ -2,7 +2,7 @@ import datetime
 from bson.binary import Binary
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-from statsmodels.tsa.api import SimpleExpSmoothing
+from statsmodels.tsa.holtwinters import SimpleExpSmoothing
 import numpy as np
 import pandas as pd
 

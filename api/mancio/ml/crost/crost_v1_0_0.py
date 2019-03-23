@@ -33,6 +33,7 @@ class crost_v1_0_0(basic_model):
                         }
                 )
         orders.time = pd.to_datetime(orders.time)
+        
         ids_list = []
         for item_id in orders.item_id.unique():
             data = orders.loc[orders['item_id'] == item_id].groupby('time')[['quantity']].sum()
