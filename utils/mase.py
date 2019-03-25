@@ -19,6 +19,6 @@ def mase(actual, forecast): #Mean Absolute Scaled Error
                 temp = abs(temp)
             naive_diff.append(temp)
         errors = myData['actual'] - myData['forecast']
-        scaledErrors = abs(errors)/(abs(sum(naive_diff))*(1/(n-1)))
+        scaledErrors = abs(errors)/(sum(naive_diff)*(1/(n-1)))
         mase = (abs(scaledErrors).sum())/n
     return mase
