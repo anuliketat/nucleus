@@ -34,17 +34,7 @@ class crost_v1_0_0(basic_model):
                         }
                 )
         orders.time = pd.to_datetime(orders.time)
-
-        ids_list = []
-        for item_id in orders.item_id.unique():
-            data = orders.loc[orders['item_id'] == item_id].groupby('time')[['quantity']].sum()
-            daily_data = data.resample('D').sum().fillna(0)
-            zeros_data = daily_data.loc[daily_data.quantity == 0]
-            if len(zeros_data) < 8: #Croston is inappropriate for data that has no zero demand periods.[temp]
-                continue
-            else:
-                ids_list.append(item_id)
-        ids_list.pop(-19) #temp
+        ids_list = orders.item_id.unique()
 
         return ids_list
 
@@ -126,6 +116,16 @@ class crost_v1_0_0(basic_model):
             try:
                 m, test_pred = self.__croston__(nonZerosTS=non_zeros_train, intvalsData=data_train, n_periods=len(test))
                 model, forecast = self.__croston__(nonZerosTS=data, intvalsData=data)
+            except ValueError as e:
+                logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
+                logger('NUCLEUS_MANCIO', 'ERR', 'Data has only 1 record')
+                logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
+                continue
+            except NotImplementedError as e:
+                logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
+                logger('NUCLEUS_MANCIO', 'ERR', 'Not enough data')
+                logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
+                continue
             except Exception as e:
                 logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
                 logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
