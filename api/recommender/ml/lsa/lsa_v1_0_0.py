@@ -10,6 +10,7 @@ from nltk.stem.porter import PorterStemmer
 from scipy.sparse.linalg import svds
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+from api.exceptions import NoModel
 from utils.metrics import cosine_sim
 from utils.misc import get_traceback, logger, sort_tuple
 
@@ -24,6 +25,9 @@ class lsa_v1_0_0(basic_model):
 	# Need implementation
 	def __get_max_k__(self):
 		return 95
+
+	def __max_past_orders__(self):
+		return 15
 
 	# Need implementation
 	def __get_data__(self, db_ai):
@@ -71,9 +75,7 @@ class lsa_v1_0_0(basic_model):
 		transformer = TfidfVectorizer()
 		tf_idf = transformer.fit_transform(stemmed_data).T
 
-		U, S, Vt = svds(tf_idf, k=self.__get_max_k__())
-		# with open('./internal_testing/S.pkl', 'wb') as fh:
-			# pickle.dump(S, fh)
+		_, S, Vt = svds(tf_idf, k=self.__get_max_k__())
 
 		S = np.diag(S)
 		food_profiles = S.dot(Vt)
@@ -86,20 +88,59 @@ class lsa_v1_0_0(basic_model):
 	def __model_deserialize__(self, model):
 		return pickle.loads(model)
 
-	# Need implementation
-	def __update_recommendations__(self, food_profiles, _model_created_at, db_main, db_ai):
-		print('__update_recommendations__() function called')
-		return 0
+	def get_food_recommendations(self, user_id, N, db_main, db_ai, fs_ai):
+		ordered_item_data_ids = []
 
-	# Need implementation
-	def get_food_recommendations(self, user_id, N, db_main, db_ai, online=False):
-		print('get_food_recommendations() function called')
-		return 0
+		# TODO: Use MongoDB aggregation pipeline
+		for order in db_main.orders.find({'user_id': user_id}, sort=[('timestamp', -1)]).limit(self.__max_past_orders__()):
+			for item in order.get('ordered_items', []):
+				ordered_item_data_ids.append(item.get('item_data_id'))
 
-	# Need implementation
+		ml_model = db_ai.models.find_one({'modelName': self.model_name, 'modelVersion': self.model_version}, sort=[('createdAt', -1)])
+		if ml_model is None:
+			raise NoModel(self.model_name, self.model_version)
+
+		model_id = ml_model.get('modelID')
+		_model_created_at = ml_model.get('createdAt')
+		ml_model = self.__model_deserialize__(fs_ai.get(model_id).read())
+		food_profiles = ml_model.get('foodProfiles')
+		food_ids_list = ml_model.get('foodIDsList')
+		taste_profile = np.zeros(food_profiles[:, 0].shape)
+
+		count = 0
+		for item_data_id in ordered_item_data_ids:
+			try:
+				index = food_ids_list.index(item_data_id)
+				taste_profile += food_profiles[:, index]
+				count += 1
+			except ValueError:
+				logger('NUCLEUS_RECOMMENDER', 'WARN', 'Item with item_data_id: {} does not exist!'.format(item_data_id))
+
+		if count > 0:
+			taste_profile = taste_profile/count
+
+		_scores = []
+		for i in range(0, len(food_ids_list)):
+			similarity = cosine_sim(taste_profile, food_profiles[:, i])
+			_scores.append((str(food_ids_list[i]), similarity))
+		_scores = sort_tuple(data=_scores, sort_key=1, descending=True)
+
+		_final_list = []
+		for _s in _scores:
+			_final_list.append({'itemDataID': _s[0], 'score': _s[1]})
+
+		reco = {}
+		reco['userID']: user_id
+		reco['foodRecommendations'] = _final_list
+		reco['modelName'] = self.model_name
+		reco['modelVersion'] = self.model_version
+		reco['createdAt'] = datetime.datetime.utcnow()
+		reco['modelCreatedAt'] = _model_created_at
+
+		db_ai.foodRecommendations.update_one({'userID': user_id, 'modelName': self.model_name, 'modelVersion': self.model_version}, {'$set': reco}, upsert=True)
+		return reco
+
 	def update_model(self, db_main, db_ai, fs_ai):
-		logger('NUCLEUS_RECOMMENDER', 'REQ', 'update_model() called for: {}_{}.'.format(self.model_name, self.model_version))
-
 		food_ids_list, food_list = self.__get_data__(db_ai)
 		food_profiles = self.__tf_idf__(food_list)
 
@@ -114,8 +155,3 @@ class lsa_v1_0_0(basic_model):
 		ml_model['modelID'] = model_id
 		ml_model['createdAt'] = datetime.datetime.utcnow()
 		db_ai.models.insert_one(ml_model)
-
-		print(food_profiles)
-		_model_created_at = ml_model['createdAt']
-		self.__update_recommendations__(food_profiles, _model_created_at, db_main, db_ai)
-		logger('NUCLEUS_RECOMMENDER', 'EXE', 'Update of the model: {}_{} successful!'.format(self.model_name, self.model_version))

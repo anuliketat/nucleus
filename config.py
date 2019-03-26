@@ -21,7 +21,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 # MongoDB conenction parameters
 MONGO_HOST = os.environ.get('MONGO_HOST', '127.0.0.1')
 MONGO_PORT = os.environ.get('MONGO_PORT', '27017')
-MONGO_DB_MAIN = os.environ.get('MONGO_DB_MAIN', 'foodstreet')
+MONGO_DB_MAIN = os.environ.get('MONGO_DB_MAIN', 'getgrub_db')
 MONGO_DB_AI = os.environ.get('MONGO_DB_AI', 'foodstreet_nucleus')
 
 if os.environ.get('MONGO_AUTH') == 'True':

@@ -16,11 +16,10 @@ def get_food_recommendations(user_id):
 	N = int(request.args.get('N', -1))
 	model_name = request.args.get('model', 'lsa').lower()
 	model_version = request.args.get('version', 'v1.0.0')
-	online = request.args.get('online', False)
 
 	try:
 		recommender_engine = REControl(g.db_main, g.db_ai, g.fs_ai, model_name, model_version)
-		response = recommender_engine.get_food_recommendations(str(user_id), int(N), online)
+		response = recommender_engine.get_food_recommendations(int(user_id), int(N))
 	except NoClass as e:
 		logger('NUCLEUS_RECOMMENDER', 'ERR', e.traceback())
 		logger('NUCLEUS_RECOMMENDER', 'ERR', e.__str__())

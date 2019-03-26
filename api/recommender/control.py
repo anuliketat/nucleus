@@ -6,6 +6,7 @@ import requests
 from flask import current_app as app
 
 from api.exceptions import NoClass
+from utils.misc import logger
 
 
 class REControl(object):
@@ -39,11 +40,25 @@ class REControl(object):
 		except Exception as e:
 			raise
 
-	def get_food_recommendations(self, user_id, N=-1, online=False):
-		food_items = self.model_class.get_food_recommendations(user_id, N, self.db_main, self.db_ai, online)
-		return {'data': {'foodItems': food_items}}
+	def get_food_recommendations(self, user_id, N=-1):
+		logger('NUCLEUS_RECOMMENDER', 'REQ', 'get_food_recommendations() of {}_{} called for user_id={} with N={}.'.format(self.model_class.model_name, self.model_class.model_version, user_id, N))
+		try:
+			reco = self.model_class.get_food_recommendations(user_id, N, self.db_main, self.db_ai, self.fs_ai)
+		except Exception:
+			raise
+
+		food_recommendations = reco['foodRecommendations']
+		num_recommendations = len(food_recommendations)
+		model_created_at = reco['modelCreatedAt']
+		if N != -1 and N <= num_recommendations:
+			food_recommendations = food_recommendations[0:N]
+
+		logger('NUCLEUS_RECOMMENDER', 'EXE', 'Fetching food recommendations from model {}_{} for user_id={} with N={} successful!'.format(self.model_class.model_name, self.model_class.model_version, user_id, N))
+		return {'data': {'foodRecommendations': food_recommendations, 'modelCreatedAt': model_created_at}}
 
 	def update_model(self):
 		# Use celery or gevent
+		logger('NUCLEUS_RECOMMENDER', 'REQ', 'update_model() called for: {}_{}.'.format(self.model_class.model_name, self.model_class.model_version))
 		self.model_class.update_model(self.db_main, self.db_ai, self.fs_ai)
+		logger('NUCLEUS_RECOMMENDER', 'EXE', 'Update of the model: {}_{} successful!'.format(self.model_class.model_name, self.model_class.model_version))
 		return {'message': 'Model has been updated successfully!'}
