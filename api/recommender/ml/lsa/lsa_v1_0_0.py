@@ -97,9 +97,11 @@ class lsa_v1_0_0(basic_model):
 		return pickle.loads(model)
 
 	def get_food_recommendations(self, user_id, N, db_main, db_ai, fs_ai):
+		# TODO: Add a check whether the user actually exists or not
 		ordered_item_data_ids = []
 
 		# TODO: Use MongoDB aggregation pipeline
+		# TODO: Add a check if '__max_past_orders__' requirement is satisfied or not
 		for order in db_main.orders.find({'user_id': user_id}, sort=[('timestamp', -1)]).limit(self.__max_past_orders__()):
 			for item in order.get('ordered_items', []):
 				ordered_item_data_ids.append(item.get('item_data_id'))
