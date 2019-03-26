@@ -27,7 +27,7 @@ class fbp_v1_0_0(basic_model):
         return pickle.loads(model)
 
     def __get_item_ids__(self, kitchen_id=None):
-        orders = pd.read_csv('./data/orders_data.csv', index_col=0,
+        orders = pd.read_csv('./data/orders_full.csv', index_col=0,
                     dtype = {'order_id': object,
                         'item_id': np.int32,
                         'name': object,
@@ -40,7 +40,7 @@ class fbp_v1_0_0(basic_model):
         return ids_list
 
     def __get_data__(self, item_id, db_ai, kitchen_id=None, mode='D'):
-        orders = pd.read_csv('./data/orders_data.csv', index_col=0,
+        orders = pd.read_csv('./data/orders_full.csv', index_col=0,
                     dtype = {'order_id': object,
                         'item_id': np.int32,
                         'name': object,
@@ -88,6 +88,7 @@ class fbp_v1_0_0(basic_model):
 
         for item_id in item_ids:
             print('Item ID:', item_id)
+            print('MODE:', mode)
             train, test, data = self.__get_data__(item_id, db_ai, mode=mode)
             try:
                 m, test_pred = self.__fbp__(train, n_periods=len(test))
@@ -120,3 +121,4 @@ class fbp_v1_0_0(basic_model):
             ml_model['mode'] = mode
             ml_model['createdAt'] = datetime.datetime.utcnow()
             db_ai.models.insert_one(ml_model)
+            print(_model['forecast'])
