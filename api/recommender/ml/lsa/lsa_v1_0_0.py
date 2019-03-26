@@ -22,14 +22,12 @@ class lsa_v1_0_0(basic_model):
 		self.model_name = 'lsa'
 		self.model_version = 'v1.0.0'
 
-	# Need implementation
 	def __get_max_k__(self):
 		return 95
 
 	def __max_past_orders__(self):
 		return 15
 
-	# Need implementation
 	def __get_data__(self, db_ai):
 		food_list = []
 		food_ids_list = []
@@ -75,7 +73,7 @@ class lsa_v1_0_0(basic_model):
 
 		return details
 
-	def __tf_idf__(self, food_list):
+	def __lsa__(self, food_list):
 		stemmed_data = []
 		for i in range(0, len(food_list)):
 			details = food_list[i]
@@ -152,7 +150,7 @@ class lsa_v1_0_0(basic_model):
 
 	def update_model(self, db_main, db_ai, fs_ai):
 		food_ids_list, food_list = self.__get_data__(db_ai)
-		food_profiles = self.__tf_idf__(food_list)
+		food_profiles = self.__lsa__(food_list)
 
 		_model = {}
 		_model['foodProfiles'] = food_profiles
