@@ -29,7 +29,7 @@ class aa_v1_0_0(basic_model):
         return pickle.loads(model)
 
     def __get_item_ids__(self, kitchen_id=None):
-        orders = pd.read_csv('./data/orders_data.csv', index_col=0,
+        orders = pd.read_csv('./data/orders_full.csv', index_col=0,
                     dtype = {'order_id': object,
                         'item_id': np.int32,
                         'name': object,
@@ -42,7 +42,7 @@ class aa_v1_0_0(basic_model):
         return ids_list
 
     def __get_data__(self, item_id, db_ai, kitchen_id=None, mode='D'):
-        orders = pd.read_csv('./data/orders_data.csv', index_col=0,
+        orders = pd.read_csv('./data/orders_full.csv', index_col=0,
                     dtype = {'order_id': object,
                         'item_id': np.int32,
                         'name': object,
@@ -78,12 +78,15 @@ class aa_v1_0_0(basic_model):
             returns lower and upper conf intervals for the forecasts
         """
         z_scr = z_score(alpha)
-        lower, upper = [], []
-        for i in preds.forecast:
-            a = i-z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5)
-            b = i+z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5)
-            lower.append(a)
-            upper.append(b)
+        if std_err_data.isnull().values.any():
+            lower, upper = np.NaN, np.NaN
+        else:
+            lower, upper = [], []
+            for i in preds.forecast:
+                a = i-z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5)
+                b = i+z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5)
+                lower.append(a)
+                upper.append(b)
 
         return lower, upper
 
@@ -92,6 +95,7 @@ class aa_v1_0_0(basic_model):
 
         for item_id in item_ids:
             print('Item ID: {}'.format(item_id))
+            print('MODE:', mode)
             train, test, data = self.__get_data__(item_id, db_ai, mode=mode)
             try:
                 m, test_pred = self.__auto_arima__(train.quantity, n_periods=len(test))
@@ -107,23 +111,23 @@ class aa_v1_0_0(basic_model):
             forecast['yhat_lower'], forecast['yhat_upper'] = self.__conf_int__(preds=forecast, std_err_data=test_preds)
             for col in forecast.columns:
                 forecast[col] = np.where(forecast[col]<0, 0, forecast[col])
-                forecast[col] = np.int64(np.ceil(forecast[col]))
+                forecast[col] = np.ceil(forecast[col])
 
             residuals = m.resid()
 
             metrics = {}
             metrics['aic'] = m.aic()
             metrics['bic'] = m.bic()
-            metrics['mse'] = mean_squared_error(test.quantity, test_pred)
-            metrics['mae'] = mean_absolute_error(test.quantity, test_pred)
-            metrics['mase'] = mase(test.quantity, test_pred)
+            metrics['mse'] = np.NaN if test_preds.isnull().values.any() else mean_squared_error(test_preds.actual, test_preds.pred)
+            metrics['mae'] = np.NaN if test_preds.isnull().values.any() else mean_absolute_error(test_preds.actual, test_preds.pred)
+            metrics['mase'] = np.NaN if test_preds.isnull().values.any() else mase(test_preds.actual, test_preds.pred)
 
             _model = {}
             _model['data'] = data
             _model['forecast'] = forecast
             _model['residuals'] = residuals
             _model['model'] = model
-            _model['summary'] = m.summary()
+            #_model['summary'] = m.summary()
             model_id = fs_ai.put(self.__model_serialize__(_model))
 
             ml_model = {}
@@ -134,3 +138,4 @@ class aa_v1_0_0(basic_model):
             ml_model['mode'] = mode
             ml_model['createdAt'] = datetime.datetime.utcnow()
             db_ai.models.insert_one(ml_model)
+            print(_model['forecast'])

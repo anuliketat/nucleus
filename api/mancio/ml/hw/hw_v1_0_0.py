@@ -26,7 +26,7 @@ class hw_v1_0_0(basic_model):
         return pickle.loads(model)
 
     def __get_item_ids__(self, kitchen_id=None):
-        orders = pd.read_csv('./data/orders_data.csv', index_col=0,
+        orders = pd.read_csv('./data/orders_full.csv', index_col=0,
                     dtype = {'order_id': object,
                         'item_id': np.int32,
                         'name': object,
@@ -39,7 +39,7 @@ class hw_v1_0_0(basic_model):
         return ids_list
 
     def __get_data__(self, item_id, db_ai, kitchen_id=None, mode='D'):
-        orders = pd.read_csv('./data/orders_data.csv', index_col=0,
+        orders = pd.read_csv('./data/orders_full.csv', index_col=0,
                     dtype = {'order_id': object,
                         'item_id': np.int32,
                         'name': object,
@@ -55,19 +55,35 @@ class hw_v1_0_0(basic_model):
 
         return train, test, data
 
-    def __hw__(self, ts_data, n_periods=2, mode='D'):
+    def __seasonal_periods__(self, ts_data, mode='D'):
+        if mode == 'W':
+            if len(ts_data) < 8:
+                s_periods, s_type = None, None
+            else:
+                s_periods = 4
+                s_type = 'add'
+        elif mode == 'M':
+            if len(ts_data) < 2:
+                s_periods, s_type = None, None
+            else:
+                s_periods = 1
+                s_type = 'add'
+        else:
+             if len(ts_data) < 60:
+                s_periods, s_type = None, None
+            else:
+                s_periods = 30
+                s_type = 'add'
+
+        return s_periods, s_type
+
+    def __hw__(self, ts_data, s_periods, s_type, n_periods=2, mode='D'):
         """
             ts_data - time series data with datetime index
             n_periods - #periods to forecast
             returns model and forecasted values for the period.
         """
-        if mode == 'W':
-            model = ExponentialSmoothing(np.asarray(ts_data['quantity']), seasonal_periods=4, trend='add', seasonal='add').fit()
-        elif mode == 'M':
-            model = ExponentialSmoothing(np.asarray(ts_data['quantity']), seasonal_periods=1, trend='add', seasonal='add').fit()
-        else:
-            model = ExponentialSmoothing(np.asarray(ts_data['quantity']), seasonal_periods=30, trend='add', seasonal='add').fit()
-
+        model = ExponentialSmoothing(np.asarray(ts_data['quantity']), seasonal_periods=s_periods, trend='add', seasonal=s_type).fit()
         forecast = model.forecast(steps = n_periods)
 
         return model, forecast
@@ -95,9 +111,11 @@ class hw_v1_0_0(basic_model):
         for item_id in item_ids:
             print('\nItem ID:', item_id)
             train, test, data = self.__get_data__(item_id, db_ai, mode=mode)
+            s_periods_train, s_type_train = self.__seasonal_periods__(train, mode=mode)
+            s_periods, s_type = self.__seasonal_periods__(data, mode=mode)
             try:
-                m, test_pred = self.__hw__(train, n_periods=len(test), mode=mode)
-                model, forecast = self.__hw__(data, mode=mode)
+                m, test_pred = self.__hw__(train, s_periods=s_periods_train, s_type=s_type_train, n_periods=len(test), mode=mode)
+                model, forecast = self.__hw__(data, s_periods=s_periods, s_type=s_type, mode=mode)
             except Exception as e:
                 logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
                 logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))

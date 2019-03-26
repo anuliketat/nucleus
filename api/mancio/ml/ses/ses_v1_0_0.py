@@ -26,7 +26,7 @@ class ses_v1_0_0(basic_model):
         return pickle.loads(model)
 
     def __get_item_ids__(self, kitchen_id=None):
-        orders = pd.read_csv('./data/orders_data.csv', index_col=0,
+        orders = pd.read_csv('./data/orders_full.csv', index_col=0,
                     dtype = {'order_id': object,
                         'item_id': np.int32,
                         'name': object,
@@ -39,7 +39,7 @@ class ses_v1_0_0(basic_model):
         return ids_list
 
     def __get_data__(self, item_id, db_ai, kitchen_id=None, mode='D'):
-        orders = pd.read_csv('./data/orders_data.csv', index_col=0,
+        orders = pd.read_csv('./data/orders_full.csv', index_col=0,
                     dtype = {'order_id': object,
                         'item_id': np.int32,
                         'name': object,
@@ -92,6 +92,16 @@ class ses_v1_0_0(basic_model):
             try:
                 m, test_pred = self.__ets__(train, n_periods=len(test))
                 model, forecast = self.__ets__(data)
+            except ValueError as e:
+                logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
+                logger('NUCLEUS_MANCIO', 'ERR', 'Data has only 1 record')
+                logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
+                continue
+            except NotImplementedError as e:
+                logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
+                logger('NUCLEUS_MANCIO', 'ERR', 'Not enough data')
+                logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
+                continue
             except Exception as e:
                 logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
                 logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
