@@ -58,18 +58,28 @@ class lsa_v1_0_0(basic_model):
 
 		return (food_ids_list, food_list)
 
-	def __tf_idf__(self, food_list):
+	def __pre_processor__(self, details):
 		ignore_chars = ''',:"&])-([''!/+.'''
 		stemmer = PorterStemmer()
+		# lemmetizer = WordNetLemmatizer()
 
+		details = details.translate(string.punctuation).lower()
+		details = word_tokenize(details)
+		details = [stemmer.stem(word) for word in details if not (word in stopwords.words('english') or word in ignore_chars or word == 'none' or word == 'nil' or word == 'null')]
+		# details = [lemmetizer.lemmatize(word) for word in details if not (word in stopwords.words('english') or word in ignore_chars or word == 'none' or word == 'nil' or word == 'null')]
+		details = ' '.join(details)
+
+		details = details.replace("'", "")
+		details = details.replace('.', '')
+		details = details.replace('/', '')
+
+		return details
+
+	def __tf_idf__(self, food_list):
 		stemmed_data = []
 		for i in range(0, len(food_list)):
 			details = food_list[i]
-			details = details.translate(string.punctuation).lower()
-			details = word_tokenize(details)
-			details = [stemmer.stem(word) for word in details if not (word in stopwords.words('english') or word in ignore_chars)]
-			details = ' '.join(details)
-
+			details = self.__pre_processor__(details)
 			stemmed_data.append(details)
 
 		transformer = TfidfVectorizer()
