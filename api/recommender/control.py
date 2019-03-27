@@ -40,6 +40,35 @@ class REControl(object):
 		except Exception as e:
 			raise
 
+	def get_popular_items(self, kitchen_id, N=-1):
+		logger('NUCLEUS_RECOMMENDER', 'REQ', 'get_popular_items() called for kitchen_id={} with N={}.'.format(kitchen_id, N))
+		pipeline = [
+            {
+                "$match": {
+                    "item_data_id": {"$ne": None},
+                    "kitchen_id": {"$eq": kitchen_id},
+                }
+            },
+            {
+                "$group": {
+                    "_id": {
+                        "item_data_id": "$item_data_id",
+                        "kitchen_id": "$kitchen_id",
+                    },
+                    "count": {"$sum": 1},
+                }
+            },
+            # {"$match": {"count": {"$gt": 0}}},
+            {"$sort": {"count": -1}},
+        ]
+		popular_items = list(self.db_main.ordered_items.aggregate(pipeline))
+		num_items = len(popular_items)
+		if N != -1 and N <= num_items:
+			popular_items = popular_items[0:N]
+
+		logger('NUCLEUS_RECOMMENDER', 'EXE', 'Fetching popular items for kitchen_id={} with N={} successful!'.format(kitchen_id, N))
+		return {'data': {'popularItems': popular_items}}
+
 	def get_food_recommendations(self, user_id, N=-1):
 		logger('NUCLEUS_RECOMMENDER', 'REQ', 'get_food_recommendations() of {}_{} called for user_id={} with N={}.'.format(self.model_class.model_name, self.model_class.model_version, user_id, N))
 		try:
