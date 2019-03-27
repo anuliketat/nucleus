@@ -74,12 +74,8 @@ class ses_v1_0_0(basic_model):
             returns lower and upper conf intervals for the forecasts
         """
         z_scr = z_score(alpha)
-        lower, upper = [], []
-        for i in preds.forecast:
-            a = i-z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5)
-            b = i+z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5)
-            lower.append(a)
-            upper.append(b)
+        lower = preds.forecast - z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5)
+        upper = preds.forecast + z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5)
 
         return lower, upper
 
