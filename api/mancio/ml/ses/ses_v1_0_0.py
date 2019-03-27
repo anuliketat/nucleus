@@ -94,13 +94,17 @@ class ses_v1_0_0(basic_model):
                 model, forecast = self.__ets__(data)
             except ValueError as e:
                 logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
-                logger('NUCLEUS_MANCIO', 'ERR', 'Data has only 1 record')
+                logger('NUCLEUS_MANCIO', 'ERR', 'Train data does not have any records.')
                 logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
                 continue
             except NotImplementedError as e:
                 logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
-                logger('NUCLEUS_MANCIO', 'ERR', 'Not enough data')
+                logger('NUCLEUS_MANCIO', 'ERR', 'Train data has only 1 record.')
                 logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
+                continue
+            except ZeroDivisionError as e:
+                logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
+                logger('NUCLEUS_MANCIO', 'ERR', 'Train data or full data have 5 records and AICC = infinity.')
                 continue
             except Exception as e:
                 logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
