@@ -44,7 +44,7 @@
 				"header": [],
 				"body": {},
 				"url": {
-					"raw": "127.0.0.1:5000/recommender/get-food-recommendations/abcd",
+					"raw": "127.0.0.1:5000/recommender/get-food-recommendations/12212",
 					"host": [
 						"127",
 						"0",
@@ -55,7 +55,7 @@
 					"path": [
 						"recommender",
 						"get-food-recommendations",
-						"abcd"
+						"12212"
 					]
 				},
 				"description": "Get recommended food-items for users"
@@ -85,6 +85,75 @@
 					]
 				},
 				"description": "Default route for checking if server is running"
+			},
+			"response": []
+		},
+		{
+			"name": "[Mancio] Update forecast model",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "127.0.0.1:5000/mancio/update-model/ses/v1.0.0?mode=d",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5000",
+					"path": [
+						"mancio",
+						"update-model",
+						"ses",
+						"v1.0.0"
+					],
+					"query": [
+						{
+							"key": "mode",
+							"value": "d"
+						}
+					]
+				},
+				"description": "Method to update the forecast model and compute predictions"
+			},
+			"response": []
+		},
+		{
+			"name": "[Recommender] Get popular-items from a kitchen",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "127.0.0.1:5000/popular/get-popular-items/2?N=3",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5000",
+					"path": [
+						"popular",
+						"get-popular-items",
+						"2"
+					],
+					"query": [
+						{
+							"key": "N",
+							"value": "3"
+						}
+					]
+				},
+				"description": "Get the popular-items from a kitchen"
 			},
 			"response": []
 		}
