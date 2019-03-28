@@ -21,7 +21,7 @@ class REControl(object):
 			# _ml_module = importlib.import_module(module_name)
 
 			# Load the module - https://www.blog.pythonlibrary.org/2016/05/27/python-201-an-intro-to-importlib/
-			module_name = 'api.recommender.ml' + '.' + model_name + '.' + model_name+'_'+model_version.replace('.', '_')
+			module_name = 'api.recommender.algorithms' + '.' + model_name + '.' + model_name+'_'+model_version.replace('.', '_')
 			module_spec = importlib.util.find_spec(module_name)
 			_ml_module = importlib.util.module_from_spec(module_spec)
 			module_spec.loader.exec_module(_ml_module)
