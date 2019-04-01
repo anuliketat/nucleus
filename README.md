@@ -11,6 +11,11 @@ Requires `python 3.x.x`.
  - First create a `python` virtual environment using [anaconda/miniconda](https://conda.io/docs/user-guide/tasks/manage-environments.html) or [virtualenv](https://virtualenv.pypa.io/en/latest/)
  - Install the required packages from `requirements.txt` by running `pip install -r requirements.txt`
 
+The setup also requires downloading data corpuses. Run the following commands after installing all the packages from `requirements.txt`.
+
+    python -m nltk download 'punkt'
+    python -m nltk download 'stopwords'
+
 ### Running
 To run your development server, first activate the virtual environment and then execute `python run.py`
 
