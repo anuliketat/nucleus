@@ -57,7 +57,7 @@ class fuzzy_v1_0_0(basic_model):
 
 		_final_list = []
 		for _s in _scores:
-			_final_list.append({'itemDataID': _s[0], 'score': _s[1]})
+			_final_list.append({'foodID': _s[0], 'score': _s[1]})
 
 		se = {}
 		se['query']: query
