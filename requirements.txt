@@ -8,42 +8,50 @@
 # api/popular/routes.py: 3
 # api/recommender/control.py: 6
 # api/recommender/routes.py: 3
+# api/search/control.py: 5
+# api/search/routes.py: 3
 # utils/io.py: 5
 Flask == 1.0.2
 
 # api/__init__.py: 5
 Flask_PyMongo == 2.2.0
 
-# api/recommender/ml/lsa/lsa_v1_0_0.py: 7,8,9
+# api/search/algorithms/fuzzy/fuzzy_v1_0_0.py: 5
+fuzzywuzzy == 0.17.0
+python-Levenshtein == 0.12.0
+
+# api/recommender/algorithms/lsa/lsa_v1_0_0.py: 7,8,9
 nltk == 3.4
 
-# api/mancio/ml/ses/ses_v1_0_0.py: 4
-# api/recommender/ml/lsa/lsa_v1_0_0.py: 5
+# api/mancio/algorithms/ses/ses_v1_0_0.py: 4
+# api/recommender/algorithms/lsa/lsa_v1_0_0.py: 5
+# api/search/algorithms/fuzzy/fuzzy_v1_0_0.py: 4
 # utils/mase.py: 1
 # utils/metrics.py: 1,2
 numpy == 1.16.0
 
-# api/mancio/ml/ses/ses_v1_0_0.py: 5
+# api/mancio/algorithms/ses/ses_v1_0_0.py: 5
 # utils/mase.py: 2
 pandas == 0.24.1
 
 # api/__init__.py: 6
-# api/mancio/ml/ses/ses_v1_0_0.py: 6
-# api/recommender/ml/lsa/lsa_v1_0_0.py: 6
+# api/mancio/algorithms/ses/ses_v1_0_0.py: 6
+# api/recommender/algorithms/lsa/lsa_v1_0_0.py: 6
 # utils/io.py: 3,4,6
 pymongo == 3.7.2
 
 # api/mancio/control.py: 4
 # api/popular/control.py: 4
 # api/recommender/control.py: 5
+# api/search/control.py: 4
 requests == 2.18.4
 
-# api/mancio/ml/ses/ses_v1_0_0.py: 7
-# api/recommender/ml/lsa/lsa_v1_0_0.py: 11
+# api/mancio/algorithms/ses/ses_v1_0_0.py: 7
+# api/recommender/algorithms/lsa/lsa_v1_0_0.py: 11
 scikit_learn == 0.20.2
 
-# api/recommender/ml/lsa/lsa_v1_0_0.py: 10
+# api/recommender/algorithms/lsa/lsa_v1_0_0.py: 10
 scipy == 1.2.0
 
-# api/mancio/ml/ses/ses_v1_0_0.py: 8
+# api/mancio/algorithms/ses/ses_v1_0_0.py: 8
 statsmodels == 0.9.0
