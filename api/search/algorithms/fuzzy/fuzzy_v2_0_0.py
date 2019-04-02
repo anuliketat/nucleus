@@ -9,6 +9,7 @@ from utils.misc import get_traceback, logger, sort_tuple
 
 from ..basic_model import basic_model
 
+
 class fuzzy_v2_0_0(basic_model):
 	def __init__(self):
 		self.model_name = 'fuzzy'
@@ -66,7 +67,3 @@ class fuzzy_v2_0_0(basic_model):
 		se['createdAt'] = datetime.datetime.utcnow()
 
 		return se
-
-
-
-

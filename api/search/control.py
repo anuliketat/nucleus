@@ -46,5 +46,3 @@ class SEControl(object):
 		self.model_class.update_model(self.db_ai)
 		logger('NUCLEUS_SEARCH', 'EXE', 'Update of the model: {}_{} successful!'.format(self.model_class.model_name, self.model_class.model_version))
 		return {'message': 'Model has been updated successfully!'}
-
-
