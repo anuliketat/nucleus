@@ -37,10 +37,9 @@ class SEControl(object):
 
 		search_results = se['searchResults']
 		num_results = len(search_results)
-		model_created_at = se['modelCreatedAt']
 
 		logger('NUCLEUS_SEARCH', 'EXE', 'Fetching search results from model {}_{} for query={} with N={} successful!'.format(self.model_class.model_name, self.model_class.model_version, query, N))
-		return {'data': {'searchResults': search_results, 'modelCreatedAt': model_created_at}}
+		return {'data': {'searchResults': search_results}}
 
 	def update_model(self):
 		logger('NUCLEUS_SEARCH', 'REQ', 'update_model() called for: {}_{}.'.format(self.model_class.model_name, self.model_class.model_version))
