@@ -15,7 +15,7 @@ def get_search_results(query):
 
 	N = int(request.args.get('N', -1))
 	model_name = request.args.get('model', 'fuzzy').lower()
-	model_version = request.args.get('version', 'v2.0.0')
+	model_version = request.args.get('version', 'v1.0.0')
 
 	try:
 		search_engine = SEControl(g.db_ai, model_name, model_version)

@@ -10,10 +10,10 @@ from utils.misc import get_traceback, logger, sort_tuple
 from ..basic_model import basic_model
 
 
-class fuzzy_v2_0_0(basic_model):
+class fuzzy_v1_0_0(basic_model):
 	def __init__(self):
 		self.model_name = 'fuzzy'
-		self.model_version = 'v2.0.0'
+		self.model_version = 'v1.0.0'
 
 	def __get_data__(self, db_ai):
 		food_names_list = []
