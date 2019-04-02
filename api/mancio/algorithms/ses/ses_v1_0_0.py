@@ -25,29 +25,25 @@ class ses_v1_0_0(basic_model):
     def __model_deserialize__(self, model):
         return pickle.loads(model)
 
-    def __get_item_ids__(self, kitchen_id=None):
-        orders = pd.read_csv('./data/orders_full.csv', index_col=0,
-                    dtype = {'order_id': object,
-                        'item_id': np.int32,
-                        'name': object,
-                        'quantity': np.int32
-                        }
-                )
-        orders.time = pd.to_datetime(orders.time)
-        ids_list = orders.item_id.unique()
+    def __get_data__(self, item_id, db_ai, kitchen_id=2, mode='D'):
+        items, item_ids, quantity, time, order_ids, kitchen_ids = [], [], [], [], [], []
+        kit_id = {}
+        for data in db_ai.ordered_items.find():
+            items.append(data.get('name'))
+            item_ids.append(data.get('item_data_id'))
+            quantity.append(data.get('quantity'))
+            time.append(data.get('timestamp'))
+            order_ids.append(data.get('order_id'))
+            kitchen_ids.append(data.get('kitchen_id'))
 
-        return ids_list
+        all_orders = pd.DataFrame({'order_id':order_ids, 'kitchen_id':kitchen_ids, 'item_id':item_ids,
+            'name':items, 'quantity':quantity, 'time':time})
+        all_orders.time = pd.to_datetime(all_orders.time, dayfirst=True, format = '%Y-%m-%d %H:%M').dt.date
+        all_orders.time = pd.to_datetime(all_orders.time)
 
-    def __get_data__(self, item_id, db_ai, kitchen_id=None, mode='D'):
-        orders = pd.read_csv('./data/orders_full.csv', index_col=0,
-                    dtype = {'order_id': object,
-                        'item_id': np.int32,
-                        'name': object,
-                        'quantity': np.int32
-                        }
-                )
-        orders.time = pd.to_datetime(orders.time)
-
+        for k in all_orders.kitchen_id.unique():
+            kit_id[k] = all_orders.loc[all_orders.kitchen_id==k]
+        orders = kit_id[kitchen_id]
         item = orders.loc[orders['item_id']==item_id].groupby('time')[['quantity']].sum()
         data = item.resample(mode).sum().fillna(0)
         train = data[:int(0.9*(len(data)))]
@@ -80,62 +76,69 @@ class ses_v1_0_0(basic_model):
         return lower, upper
 
     def update_model(self, db_main, db_ai, fs_ai, mode='D'):
-        item_ids = self.__get_item_ids__()
+        item_ids, kitchen_ids = [], []
+        for d in db_ai.ordered_items.find():
+            item_ids.append(d.get('item_data_id'))
+            kitchen_ids.append(d.get('kitchen_id'))
 
-        for item_id in item_ids:
-            print('Item ID: {}'.format(item_id))
-            train, test, data = self.__get_data__(item_id, db_ai, mode=mode)
-            try:
-                m, test_pred = self.__ets__(train, n_periods=len(test))
-                model, forecast = self.__ets__(data)
-            except ValueError as e:
-                logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
-                logger('NUCLEUS_MANCIO', 'ERR', 'Train data does not have any records.')
-                logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
-                continue
-            except NotImplementedError as e:
-                logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
-                logger('NUCLEUS_MANCIO', 'ERR', 'Train data has only 1 record.')
-                logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
-                continue
-            except ZeroDivisionError as e:
-                logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
-                logger('NUCLEUS_MANCIO', 'ERR', 'Train data or full data have 5 records and AICC = infinity.')
-                continue
-            except Exception as e:
-                logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
-                logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
-                continue
+        for k in set(kitchen_ids):
+            for item_id in set(item_ids):
+                print('Item ID: {}'.format(item_id))
+                train, test, data = self.__get_data__(item_id, db_ai, kitchen_id=k, mode=mode)
+                try:
+                    m, test_pred = self.__ets__(train, n_periods=len(test))
+                    model, forecast = self.__ets__(data)
+                except ValueError as e:
+                    logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
+                    logger('NUCLEUS_MANCIO', 'ERR', 'Train data does not have any records.')
+                    logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
+                    continue
+                except NotImplementedError as e:
+                    logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
+                    logger('NUCLEUS_MANCIO', 'ERR', 'Train data has only 1 record.')
+                    logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
+                    continue
+                except ZeroDivisionError as e:
+                    logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
+                    logger('NUCLEUS_MANCIO', 'ERR', 'Train data or full data have 5 records and AICC = infinity.')
+                    continue
+                except Exception as e:
+                    logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
+                    logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
+                    continue
 
-            test_preds = pd.DataFrame({'pred':test_pred, 'actual':test.quantity}, index=test.index)
-            dates = pd.date_range(start=test.index.max()+datetime.timedelta(days=1), periods=len(forecast), freq=mode)
-            forecast = pd.DataFrame(forecast, index=dates, columns=['forecast'])
-            forecast['yhat_lower'], forecast['yhat_upper'] = self.__conf_int__(preds=forecast, std_err_data=test_preds)
-            for col in forecast.columns:
-                forecast[col] = np.where(forecast[col]<0, 0, forecast[col])
-                forecast[col] = np.int64(np.ceil(forecast[col]))
+                test_preds = pd.DataFrame({'pred':test_pred, 'actual':test.quantity}, index=test.index)
+                dates = pd.date_range(start=test.index.max()+datetime.timedelta(days=1), periods=len(forecast), freq=mode)
+                forecast = pd.DataFrame(forecast, index=dates, columns=['forecast'])
+                forecast['yhat_lower'], forecast['yhat_upper'] = self.__conf_int__(preds=forecast, std_err_data=test_preds)
+                for col in forecast.columns:
+                    forecast[col] = np.where(forecast[col]<0, 0, forecast[col])
+                    forecast[col] = np.int64(np.ceil(forecast[col]))
 
-            residuals = m.resid
+                residuals = m.resid
 
-            metrics = {}
-            metrics['aic'] = m.aic
-            metrics['bic'] = m.bic
-            metrics['mse'] = mean_squared_error(test.quantity, test_pred)
-            metrics['mae'] = mean_absolute_error(test.quantity, test_pred)
-            metrics['mase'] = mase(test.quantity, test_pred)
+                metrics = {}
+                metrics['aic'] = m.aic
+                metrics['bic'] = m.bic
+                metrics['mse'] = mean_squared_error(test.quantity, test_pred)
+                metrics['mae'] = mean_absolute_error(test.quantity, test_pred)
+                metrics['mase'] = mase(test.quantity, test_pred)
 
-            _model = {}
-            _model['data'] = data
-            _model['forecast'] = forecast
-            _model['residuals'] = residuals
-            _model['model'] = model
-            model_id = fs_ai.put(self.__model_serialize__(_model))
+                _model = {}
+                _model['kitchen'] = k
+                _model['data'] = data
+                _model['forecast'] = forecast
+                _model['residuals'] = residuals
+                _model['model'] = model
+                model_id = fs_ai.put(self.__model_serialize__(_model))
 
-            ml_model = {}
-            ml_model['modelName'] = self.model_name
-            ml_model['modelVersion'] = self.model_version
-            ml_model['modelID'] = model_id
-            ml_model['metrics'] = metrics
-            ml_model['mode'] = mode
-            ml_model['createdAt'] = datetime.datetime.utcnow()
-            db_ai.models.insert_one(ml_model)
+                ml_model = {}
+                ml_model['modelName'] = self.model_name
+                ml_model['modelVersion'] = self.model_version
+                ml_model['modelID'] = model_id
+                ml_model['metrics'] = metrics
+                ml_model['mode'] = mode
+                ml_model['createdAt'] = datetime.datetime.utcnow()
+                db_ai.models.insert_one(ml_model)
+                print(_model['kitchen'])
+                print(_model['forecast'])
