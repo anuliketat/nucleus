@@ -29,7 +29,7 @@ def get_search_results(query):
 		return jsonify({'message': 'Unknown error! Please try after sometime.'}), 500
 
 	end_time = time.time()
-	logger('NUCLEUS_SEARCH', 'EXE_TIME', 'Execution time of get_search_results() for query={} is {}.'.format(query, end_time-start_time))
+	logger('NUCLEUS_SEARCH', 'EXE_TIME', 'Execution time of get_search_results() for query={} with N={} is {}.'.format(query, N, end_time-start_time))
 	return jsonify(response), 200
 
 @blue_print.route('/update-model/<model_name>/<model_version>', methods=['GET'])
