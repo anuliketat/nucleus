@@ -25,10 +25,10 @@ class ses_v1_0_0(basic_model):
     def __model_deserialize__(self, model):
         return pickle.loads(model)
 
-    def __get_data__(self, item_id, db_ai, kitchen_id=2, mode='D'):
+    def __get_data__(self, item_id, db_main, kitchen_id=2, mode='D'):
         items, item_ids, quantity, time, order_ids, kitchen_ids = [], [], [], [], [], []
         kit_id = {}
-        for data in db_ai.ordered_items.find():
+        for data in db_main.ordered_items.find():
             items.append(data.get('name'))
             item_ids.append(data.get('item_data_id'))
             quantity.append(data.get('quantity'))
@@ -77,14 +77,14 @@ class ses_v1_0_0(basic_model):
 
     def update_model(self, db_main, db_ai, fs_ai, mode='D'):
         item_ids, kitchen_ids = [], []
-        for d in db_ai.ordered_items.find():
+        for d in db_main.ordered_items.find():
             item_ids.append(d.get('item_data_id'))
             kitchen_ids.append(d.get('kitchen_id'))
 
         for k in set(kitchen_ids):
             for item_id in set(item_ids):
                 print('Item ID: {}'.format(item_id))
-                train, test, data = self.__get_data__(item_id, db_ai, kitchen_id=k, mode=mode)
+                train, test, data = self.__get_data__(item_id, db_main, kitchen_id=k, mode=mode)
                 try:
                     m, test_pred = self.__ets__(train, n_periods=len(test))
                     model, forecast = self.__ets__(data)
@@ -140,5 +140,3 @@ class ses_v1_0_0(basic_model):
                 ml_model['mode'] = mode
                 ml_model['createdAt'] = datetime.datetime.utcnow()
                 db_ai.models.insert_one(ml_model)
-                print(_model['kitchen'])
-                print(_model['forecast'])
