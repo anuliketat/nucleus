@@ -36,8 +36,16 @@ class ses_v1_0_0(basic_model):
             order_ids.append(data.get('order_id'))
             kitchen_ids.append(data.get('kitchen_id'))
 
-        all_orders = pd.DataFrame({'order_id':order_ids, 'kitchen_id':kitchen_ids, 'item_id':item_ids,
-            'name':items, 'quantity':quantity, 'time':time})
+        all_orders = pd.DataFrame(
+            {
+                "order_id": order_ids,
+                "kitchen_id": kitchen_ids,
+                "item_id": item_ids,
+                "name": items,
+                "quantity": quantity,
+                "time": time,
+            }
+        )
         all_orders.time = pd.to_datetime(all_orders.time, dayfirst=True, format = '%Y-%m-%d %H:%M').dt.date
         all_orders.time = pd.to_datetime(all_orders.time)
 
