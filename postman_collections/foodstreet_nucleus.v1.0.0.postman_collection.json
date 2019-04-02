@@ -156,6 +156,40 @@
 				"description": "Get the popular-items from a kitchen"
 			},
 			"response": []
+		},
+		{
+			"name": "[Search] Get search results",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "127.0.0.1:5000/search/get-search-results/veg pizza?N=3",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5000",
+					"path": [
+						"search",
+						"get-search-results",
+						"veg pizza"
+					],
+					"query": [
+						{
+							"key": "N",
+							"value": "3"
+						}
+					]
+				},
+				"description": "Get food items related to the search query."
+			},
+			"response": []
 		}
 	]
 }
