@@ -23,7 +23,7 @@ def get_search_results(query):
 	except NoClass as e:
 		logger('NUCLEUS_SEARCH', 'ERR', e.traceback())
 		logger('NUCLEUS_SEARCH', 'ERR', e.__str__())
-		return jsonify({'message': e.__str__()}), e.http_status()	
+		return jsonify({'message': e.__str__()}), e.http_status()
 	except Exception as e:
 		logger('NUCLEUS_SEARCH', 'ERR', get_traceback(e))
 		return jsonify({'message': 'Unknown error! Please try after sometime.'}), 500
@@ -38,7 +38,7 @@ def update_model(model_name, model_version):
 
 	try:
 		search_engine = SEControl(g.db_ai, model_name, model_version)
-		response = search_engine.update_model()	
+		response = search_engine.update_model()
 	except NoClass as e:
 		logger('NUCLEUS_SEARCH', 'ERR', e.traceback())
 		logger('NUCLEUS_SEARCH', 'ERR', e.__str__())
@@ -49,4 +49,4 @@ def update_model(model_name, model_version):
 
 	end_time = time.time()
 	logger('NUCLEUS_SEARCH', 'EXE_TIME', 'Execution time of update_model() for {}_{} is {}.'.format(model_name, model_version, end_time-start_time))
-	return jsonify(response), 200	
+	return jsonify(response), 200
