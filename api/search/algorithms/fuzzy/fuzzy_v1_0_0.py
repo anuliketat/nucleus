@@ -64,4 +64,5 @@ class fuzzy_v1_0_0(basic_model):
 		se['modelVersion'] = self.model_version
 		se['createdAt'] = datetime.datetime.utcnow()
 
+		db_ai.searchResults.update_one({'query': query, 'modelName': self.model_name, 'modelVersion': self.model_version}, {'$set': se}, upsert=True)
 		return se
