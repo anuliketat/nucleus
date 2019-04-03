@@ -37,6 +37,8 @@ class SEControl(object):
 
 		search_results = se['searchResults']
 		num_results = len(search_results)
+		if N != -1 and N <= num_results:
+			search_results = search_results[0:N]
 
 		logger('NUCLEUS_SEARCH', 'EXE', 'Fetching search results from model {}_{} for query={} with N={} successful!'.format(self.model_class.model_name, self.model_class.model_version, query, N))
 		return {'data': {'searchResults': search_results}}

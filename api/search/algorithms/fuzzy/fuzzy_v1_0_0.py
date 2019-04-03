@@ -1,11 +1,9 @@
 import datetime
-import string
 
 import numpy as np
 from fuzzywuzzy import fuzz
 
-from api.exceptions import NoModel
-from utils.misc import get_traceback, logger, sort_tuple
+from utils.misc import sort_tuple
 
 from ..basic_model import basic_model
 
