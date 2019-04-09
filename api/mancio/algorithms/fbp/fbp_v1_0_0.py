@@ -5,9 +5,10 @@ import numpy as np
 import pandas as pd
 from bson.binary import Binary
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-
 from fbprophet import Prophet
 from fbprophet.diagnostics import cross_validation, performance_metrics
+
+from api.exceptions import NoModel
 from utils.mase import mase
 from utils.misc import get_traceback, logger
 
