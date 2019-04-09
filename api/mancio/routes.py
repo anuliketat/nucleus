@@ -9,17 +9,14 @@ from .control import MAControl
 
 blue_print = Blueprint('mancio', __name__, url_prefix='/mancio')
 
-@blue_print.route('/get-forecast/<item_data_id>', methods=['GET'])
-def get_forecast(item_data_id):
+@blue_print.route('/get-forecast/<model_name>/<model_version>/<item_data_id>', methods=['GET'])
+def get_forecast(model_name, model_version, item_data_id):
 	start_time = time.time()
 
 	allowed_modes = ['D', 'W', 'M']
 	mode = request.args.get('mode', 'D').upper()
 	if mode not in allowed_modes:
 		mode = 'D'
-
-	model_name = request.args.get('model', 'ses').lower()
-	model_version = request.args.get('version', 'v1.0.0')
 
 	try:
 		mancio_engine = MAControl(g.db_main, g.db_ai, g.fs_ai, model_name, model_version)
