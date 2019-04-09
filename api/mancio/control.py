@@ -31,6 +31,19 @@ class MAControl(object):
 		except Exception as e:
 			raise
 
+	def get_forecast(self, item_data_id, mode):
+		logger('NUCLEUS_MANCIO', 'REQ', 'get_forecast() of {}_{} called for item_data_id={} with mode={}.'.format(self.model_class.model_name, self.model_class.model_version, item_data_id, mode))
+		try:
+			manc = self.model_class.get_forecast(self.db_main, self.db_ai, self.fs_ai, item_data_id, mode)
+		except Exception:
+			raise
+
+		forecast = manc['demandForecast']
+		model_created_at = manc['modelCreatedAt']
+
+		logger('NUCLEUS_MANCIO', 'EXE', 'Fetching forecast from model {}_{} for item_data_id={} with mode={} successful!'.format(self.model_class.model_name, self.model_class.model_version, item_data_id, mode))
+		return {'data': {'demandForecast': forecast, 'modelCreatedAt': model_created_at}}
+
 	def update_model(self, mode):
 		# Use celery or gevent
 		logger('NUCLEUS_MANCIO', 'REQ', 'update_model() called for: {}_{} with mode={}.'.format(self.model_class.model_name, self.model_class.model_version, mode))
