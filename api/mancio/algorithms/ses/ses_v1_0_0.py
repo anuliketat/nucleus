@@ -47,7 +47,7 @@ class ses_v1_0_0(basic_model):
                 "time": time,
             }
         )
-        all_orders = all_orders[all_orders.item_data_id!=None]
+        all_orders = all_orders[all_orders.item_data_id != None]
         all_orders.time = pd.to_datetime(all_orders.time, dayfirst=True, format = '%Y-%m-%d %H:%M').dt.date
         all_orders.time = pd.to_datetime(all_orders.time)
 
@@ -119,6 +119,7 @@ class ses_v1_0_0(basic_model):
         for d in db_main.ordered_items.find():
             item_data_ids.append(d.get('item_data_id'))
             kitchen_ids.append(d.get('kitchen_id'))
+        item_data_ids = [i for i in item_data_ids if i]
 
         for k in set(kitchen_ids):
             for item_id in set(item_data_ids):
