@@ -12,7 +12,7 @@ from api.exceptions import NoModel
 from utils.mase import mase
 from utils.misc import get_traceback, logger
 
-from ..basic_model import basic_model
+from ..basic_model.basic_model import basic_model
 
 
 class fbp_v1_0_0(basic_model):
