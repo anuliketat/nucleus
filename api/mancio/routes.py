@@ -2,7 +2,7 @@ import time
 
 from flask import Blueprint, g, jsonify, request
 
-from api.exceptions import NoClass
+from api.exceptions import NoClass, NoForecast
 from utils.misc import get_traceback, logger
 
 from .control import MAControl
@@ -19,10 +19,14 @@ def get_forecast(model_name, model_version, item_data_id):
 		mode = 'D'
 
 	try:
-		mancio_engine = MAControl(g.db_main, g.db_ai, g.fs_ai, model_name, model_version)
-		response = mancio_engine.get_forecast(int(item_data_id), mode)
+		mancio_engine = MAControl(g.db_main, g.db_ai, g.fs_ai)
+		response = mancio_engine.get_forecast(model_name, model_version, int(item_data_id), mode)
 	except NoClass as e:
-		logger('NUCLEUS_MANCIO', 'ERR', e.traceback())
+		logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
+		logger('NUCLEUS_MANCIO', 'ERR', e.__str__())
+		return jsonify({'message': e.__str__()}), e.http_status()
+	except NoForecast as e:
+		logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
 		logger('NUCLEUS_MANCIO', 'ERR', e.__str__())
 		return jsonify({'message': e.__str__()}), e.http_status()
 	except Exception as e:
@@ -43,10 +47,10 @@ def update_model(model_name, model_version):
 		mode = 'D'
 
 	try:
-		mancio_engine = MAControl(g.db_main, g.db_ai, g.fs_ai, model_name, model_version)
-		response = mancio_engine.update_model(mode)
+		mancio_engine = MAControl(g.db_main, g.db_ai, g.fs_ai)
+		response = mancio_engine.update_model(model_name, model_version, mode)
 	except NoClass as e:
-		logger('NUCLEUS_MANCIO', 'ERR', e.traceback())
+		logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
 		logger('NUCLEUS_MANCIO', 'ERR', e.__str__())
 		return jsonify({'message': e.__str__()}), e.http_status()
 	except Exception as e:
