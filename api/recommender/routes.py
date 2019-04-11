@@ -21,7 +21,7 @@ def get_food_recommendations(user_id):
 		recommender_engine = REControl(g.db_main, g.db_ai, g.fs_ai, model_name, model_version)
 		response = recommender_engine.get_food_recommendations(int(user_id), int(N))
 	except NoClass as e:
-		logger('NUCLEUS_RECOMMENDER', 'ERR', e.traceback())
+		logger('NUCLEUS_RECOMMENDER', 'ERR', get_traceback(e))
 		logger('NUCLEUS_RECOMMENDER', 'ERR', e.__str__())
 		return jsonify({'message': e.__str__()}), e.http_status()
 	except Exception as e:
@@ -40,7 +40,7 @@ def update_model(model_name, model_version):
 		recommender_engine = REControl(g.db_main, g.db_ai, g.fs_ai, model_name, model_version)
 		response = recommender_engine.update_model()
 	except NoClass as e:
-		logger('NUCLEUS_RECOMMENDER', 'ERR', e.traceback())
+		logger('NUCLEUS_RECOMMENDER', 'ERR', get_traceback(e))
 		logger('NUCLEUS_RECOMMENDER', 'ERR', e.__str__())
 		return jsonify({'message': e.__str__()}), e.http_status()
 	except Exception as e:

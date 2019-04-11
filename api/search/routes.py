@@ -21,7 +21,7 @@ def get_search_results(query):
 		search_engine = SEControl(g.db_ai, model_name, model_version)
 		response = search_engine.get_search_results(str(query), int(N))
 	except NoClass as e:
-		logger('NUCLEUS_SEARCH', 'ERR', e.traceback())
+		logger('NUCLEUS_SEARCH', 'ERR', get_traceback(e))
 		logger('NUCLEUS_SEARCH', 'ERR', e.__str__())
 		return jsonify({'message': e.__str__()}), e.http_status()
 	except Exception as e:
@@ -40,7 +40,7 @@ def update_model(model_name, model_version):
 		search_engine = SEControl(g.db_ai, model_name, model_version)
 		response = search_engine.update_model()
 	except NoClass as e:
-		logger('NUCLEUS_SEARCH', 'ERR', e.traceback())
+		logger('NUCLEUS_SEARCH', 'ERR', get_traceback(e))
 		logger('NUCLEUS_SEARCH', 'ERR', e.__str__())
 		return jsonify({'message': e.__str__()}), e.http_status()
 	except Exception as e:
