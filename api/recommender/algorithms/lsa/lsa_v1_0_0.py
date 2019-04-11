@@ -11,6 +11,7 @@ from scipy.sparse.linalg import svds
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from api.exceptions import NoModel
+from utils.io import model_deserialize, model_serialize
 from utils.metrics import cosine_sim
 from utils.misc import get_traceback, logger, sort_tuple
 
@@ -89,13 +90,6 @@ class lsa_v1_0_0(basic_model):
 		food_profiles = S.dot(Vt)
 		return food_profiles
 
-	def __model_serialize__(self, model):
-		return Binary(pickle.dumps(model, protocol=2))
-		# return pickle.dumps(model, protocol=pickle.HIGHEST_PROTOCOL)
-
-	def __model_deserialize__(self, model):
-		return pickle.loads(model)
-
 	def get_food_recommendations(self, user_id, N, db_main, db_ai, fs_ai):
 		# TODO: Add a check whether the user actually exists or not
 		ordered_item_data_ids = []
@@ -112,7 +106,7 @@ class lsa_v1_0_0(basic_model):
 
 		model_id = ml_model.get('modelID')
 		_model_created_at = ml_model.get('createdAt')
-		ml_model = self.__model_deserialize__(fs_ai.get(model_id).read())
+		ml_model = model_deserialize(fs_ai.get(model_id).read())
 		food_profiles = ml_model.get('foodProfiles')
 		food_ids_list = ml_model.get('foodIDsList')
 		taste_profile = np.zeros(food_profiles[:, 0].shape)
@@ -157,7 +151,7 @@ class lsa_v1_0_0(basic_model):
 		_model = {}
 		_model['foodProfiles'] = food_profiles
 		_model['foodIDsList'] = food_ids_list
-		model_id = fs_ai.put(self.__model_serialize__(_model))
+		model_id = fs_ai.put(model_serialize(_model))
 
 		ml_model = {}
 		ml_model['modelName'] = self.model_name
