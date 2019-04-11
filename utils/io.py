@@ -1,4 +1,5 @@
 import pickle
+from bson.binary import Binary
 
 
 def model_serialize(model):
