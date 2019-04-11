@@ -36,7 +36,7 @@ class NoForecast(Exception):
 		return 404
 
 	def __str__(self):
-		return 'ALERT! The forecast for item_data_id={} with ML Model: {}_{} is not yet trained! Please update the model!'.format(self.item_data_id, self.model_name, self.model_version)
+		return 'ALERT! The forecast for item_data_id={} with ML Model: {}_{} does not exist! Please update the model!'.format(self.item_data_id, self.model_name, self.model_version)
 
 class DBError(Exception):
 	def __init__(self, e, db_name, error):
