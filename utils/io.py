@@ -1,38 +1,8 @@
-import os
-
-from bson.binary import Binary
-from bson.objectid import ObjectId
-from flask import jsonify
-from pymongo.son_manipulator import SONManipulator
+import pickle
 
 
-class UTF8Encoder(SONManipulator):
-    def transform_outgoing(self, son, collection):
-        new_son = {}
-        for key, value in son.items():
-            try:
-                if isinstance(key, bytes):
-                    key = key.decode('UTF-8')
-                if isinstance(value, bytes):
-                    value = value.decode('UTF-8')
-            except Exception as e:
-                print(e)
-            new_son[key] = value
-        son = new_son
-        return son
+def model_serialize(model):
+    return Binary(pickle.dumps(model, protocol=2))
 
-    def will_copy(self):
-        return False
-
-class IDtoString(SONManipulator):
-    def transform_outgoing(self, son, collection):
-        new_son = {}
-        for key, value in son.items():
-            if isinstance(value, ObjectId):
-                value = str(value)
-            new_son[key] = value
-        son = new_son
-        return son
-
-    def will_copy(self):
-        return False
+def model_deserialize(model):
+    return pickle.loads(model)
