@@ -106,7 +106,7 @@ class lsa_v1_0_0(basic_model):
 			for item in order.get('ordered_items', []):
 				ordered_item_data_ids.append(item.get('item_data_id'))
 
-		ml_model = db_ai.models.find_one({'modelName': self.model_name, 'modelVersion': self.model_version}, sort=[('createdAt', -1)])
+		ml_model = db_ai.recommenderModels.find_one({'modelName': self.model_name, 'modelVersion': self.model_version}, sort=[('createdAt', -1)])
 		if ml_model is None:
 			raise NoModel(self.model_name, self.model_version)
 
@@ -164,4 +164,4 @@ class lsa_v1_0_0(basic_model):
 		ml_model['modelVersion'] = self.model_version
 		ml_model['modelID'] = model_id
 		ml_model['createdAt'] = datetime.datetime.utcnow()
-		db_ai.models.insert_one(ml_model)
+		db_ai.recommenderModels.update_one({'modelName': self.model_name, 'modelVersion': self.model_version}, {'$set': ml_model}, upsert=True)
