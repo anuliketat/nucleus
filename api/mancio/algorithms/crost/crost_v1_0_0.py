@@ -5,28 +5,22 @@ import numpy as np
 import pandas as pd
 from bson.binary import Binary
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-from statsmodels.tsa.api import SimpleExpSmoothing
+from statsmodels.tsa.holtwinters import SimpleExpSmoothing
 
 from api.exceptions import NoModel
 from utils.mase import mase
 from utils.misc import get_traceback, logger
 from utils.z_score import z_score
+from utils.io import model_serialize
 
 from ..basic_model.basic_model import basic_model
-
 
 class crost_v1_0_0(basic_model):
     def __init__(self):
         self.model_name = 'crost'
         self.model_version = 'v1.0.0'
 
-    def __model_serialize__(self, model):
-        return Binary(pickle.dumps(model, protocol=2))
-
-    def __model_deserialize__(self, model):
-        return pickle.loads(model)
-
-    def __get_data__(self, item_data_id, db_main, kitchen_id=2, mode='D'):
+    def __get_data__(self, item_data_id, db_main, kitchen_id, mode='D'):
         items, item_data_ids, quantity, time, order_ids, kitchen_ids = [], [], [], [], [], []
         kit_id = {}
         for data in db_main.ordered_items.find():
@@ -113,35 +107,6 @@ class crost_v1_0_0(basic_model):
 
         return lower, upper
 
-    def get_forecast(self, db_main, db_ai, fs_ai, item_data_id, mode='D'):
-        ml_model = db_ai.models.find_one(
-                                        {'modelName': self.model_name,
-                                        'modelVersion': self.model_version,
-                                        'itemDataID': item_data_id,
-                                        'mode': mode},
-                                        sort=[('createdAt', -1)]
-                                        )
-        if ml_model is None:
-            raise NoModel(self.model_name, self.model_version)
-
-        model_id = ml_model.get('modelID')
-        _model_created_at = ml_model.get('createdAt')
-        ml_model_data = self.__model_deserialize__(fs_ai.get(model_id).read())
-        items_data = ml_model_data.get('data')
-        forecast = ml_model_data.get('forecast')
-
-        manc = {}
-        manc['itemDataID'] = item_data_id
-        manc['kitchenID'] = ml_model.get('kitchen')
-        manc['mode'] = ml_model.get('mode')
-        manc['demandForecast'] = forecast.to_json()
-        manc['modelName'] = self.model_name
-        manc['modelVersion'] = self.model_version
-        manc['createdAt'] = datetime.datetime.utcnow()
-        manc['modelCreatedAt'] = _model_created_at
-
-        return manc
-
     def update_model(self, db_main, db_ai, fs_ai, mode='D'):
         item_data_ids, kitchen_ids = [], []
         for d in db_main.ordered_items.find():
@@ -149,26 +114,26 @@ class crost_v1_0_0(basic_model):
             kitchen_ids.append(d.get('kitchen_id'))
         item_data_ids = [i for i in item_data_ids if i]
 
-        for k in set(kitchen_ids):
-            for item_id in set(item_data_ids):
-                print('\nItem ID:', item_id)
-                non_zeros_train, data_train, test, data = self.__get_data__(item_id, db_main, kitchen_id=k, mode=mode)
+        for kitchen_id in set(kitchen_ids):
+            for item_data_id in set(item_data_ids):
+                print('\nItem ID:', item_data_id)
+                non_zeros_train, data_train, test, data = self.__get_data__(item_data_id, db_main, kitchen_id=kitchen_id, mode=mode)
                 try:
                     m, test_pred = self.__croston__(nonZerosTS=non_zeros_train, intvalsData=data_train, n_periods=len(test))
                     model, forecast = self.__croston__(nonZerosTS=data, intvalsData=data)
                 except ValueError as e:
                     logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
                     logger('NUCLEUS_MANCIO', 'ERR', 'Data has only 1 record')
-                    logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
+                    logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_data_id, mode))
                     continue
                 except NotImplementedError as e:
                     logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
                     logger('NUCLEUS_MANCIO', 'ERR', 'Not enough data')
-                    logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
+                    logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_data_id, mode))
                     continue
                 except Exception as e:
                     logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
-                    logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_id, mode))
+                    logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_data_id, mode))
                     continue
 
                 #print('In the next {} days, demand is {} units'.format(round(forecast_intervals[0], 2), round(forecast_nonzero[0], 2)))
@@ -192,20 +157,21 @@ class crost_v1_0_0(basic_model):
                 metrics['mase'] = mase(test.quantity, test_pred)
 
                 _model = {}
-                _model['kitchen'] = k
-                _model['itemDataID'] = item_id
+                _model['kitchen'] = kitchen_id
+                _model['itemDataID'] = item_data_id
                 _model['data'] = data
                 _model['forecast'] = forecast
                 _model['residuals'] = residuals
                 _model['model'] = model
-                model_id = fs_ai.put(self.__model_serialize__(_model))
+                model_id = fs_ai.put(model_serialize(_model))
 
                 ml_model = {}
                 ml_model['modelName'] = self.model_name
                 ml_model['modelVersion'] = self.model_version
                 ml_model['modelID'] = model_id
-                ml_model['itemDataID'] = item_id
+                ml_model['kitchenID'] = kitchen_id
+                ml_model['itemDataID'] = item_data_id
                 ml_model['metrics'] = metrics
                 ml_model['mode'] = mode
                 ml_model['createdAt'] = datetime.datetime.utcnow()
-                db_ai.models.insert_one(ml_model)
+                db_ai.mancioModels.update_one({'kitchenID': kitchen_id, 'itemDataID': item_data_id, 'modelName': self.model_name, 'modelVersion': self.model_version}, {'$set': ml_model}, upsert=True)
