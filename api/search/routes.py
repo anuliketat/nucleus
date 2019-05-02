@@ -18,8 +18,8 @@ def get_search_results(query):
 	model_version = request.args.get('version', 'v1.0.0')
 
 	try:
-		search_engine = SEControl(g.db_ai, model_name, model_version)
-		response = search_engine.get_search_results(str(query), int(N))
+		search_engine = SEControl(g.db_ai)
+		response = search_engine.get_search_results(model_name, model_version, str(query), int(N))
 	except NoClass as e:
 		logger('NUCLEUS_SEARCH', 'ERR', get_traceback(e))
 		logger('NUCLEUS_SEARCH', 'ERR', e.__str__())
@@ -37,8 +37,8 @@ def update_model(model_name, model_version):
 	start_time = time.time()
 
 	try:
-		search_engine = SEControl(g.db_ai, model_name, model_version)
-		response = search_engine.update_model()
+		search_engine = SEControl(g.db_ai)
+		response = search_engine.update_model(model_name, model_version, )
 	except NoClass as e:
 		logger('NUCLEUS_SEARCH', 'ERR', get_traceback(e))
 		logger('NUCLEUS_SEARCH', 'ERR', e.__str__())
