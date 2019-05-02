@@ -18,8 +18,8 @@ def get_food_recommendations(user_id):
 	model_version = request.args.get('version', 'v1.0.0')
 
 	try:
-		recommender_engine = REControl(g.db_main, g.db_ai, g.fs_ai, model_name, model_version)
-		response = recommender_engine.get_food_recommendations(int(user_id), int(N))
+		recommender_engine = REControl(g.db_main, g.db_ai, g.fs_ai)
+		response = recommender_engine.get_food_recommendations(model_name, model_version, int(user_id), int(N))
 	except NoClass as e:
 		logger('NUCLEUS_RECOMMENDER', 'ERR', get_traceback(e))
 		logger('NUCLEUS_RECOMMENDER', 'ERR', e.__str__())
@@ -37,8 +37,8 @@ def update_model(model_name, model_version):
 	start_time = time.time()
 
 	try:
-		recommender_engine = REControl(g.db_main, g.db_ai, g.fs_ai, model_name, model_version)
-		response = recommender_engine.update_model()
+		recommender_engine = REControl(g.db_main, g.db_ai, g.fs_ai)
+		response = recommender_engine.update_model(model_name, model_version)
 	except NoClass as e:
 		logger('NUCLEUS_RECOMMENDER', 'ERR', get_traceback(e))
 		logger('NUCLEUS_RECOMMENDER', 'ERR', e.__str__())

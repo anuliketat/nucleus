@@ -10,12 +10,13 @@ from utils.misc import logger
 
 
 class REControl(object):
-	def __init__(self, db_main, db_ai, fs_ai, model_name, model_version):
+	def __init__(self, db_main, db_ai, fs_ai):
 		self.db_main = db_main
 		self.db_ai = db_ai
 		self.fs_ai = fs_ai
 		self.model_class = None
 
+	def __load_model_class__(self, model_name, model_version):
 		try:
 			# module_name = 'ml' + '.' + model_name + '.' + model_name+'_'+model_version.replace('.', '_')
 			# _ml_module = importlib.import_module(module_name)
@@ -40,9 +41,10 @@ class REControl(object):
 		except Exception as e:
 			raise
 
-	def get_food_recommendations(self, user_id, N=-1):
-		logger('NUCLEUS_RECOMMENDER', 'REQ', 'get_food_recommendations() of {}_{} called for user_id={} with N={}.'.format(self.model_class.model_name, self.model_class.model_version, user_id, N))
+	def get_food_recommendations(self, model_name, model_version, user_id, N=-1):
+		logger('NUCLEUS_RECOMMENDER', 'REQ', 'get_food_recommendations() of {}_{} called for user_id={} with N={}.'.format(model_name, model_version, user_id, N))
 		try:
+			self.__load_model_class__(model_name, model_version)
 			reco = self.model_class.get_food_recommendations(user_id, N, self.db_main, self.db_ai, self.fs_ai)
 		except Exception:
 			raise
@@ -53,12 +55,13 @@ class REControl(object):
 		if N != -1 and N <= num_recommendations:
 			food_recommendations = food_recommendations[0:N]
 
-		logger('NUCLEUS_RECOMMENDER', 'EXE', 'Fetching food recommendations from model {}_{} for user_id={} with N={} successful!'.format(self.model_class.model_name, self.model_class.model_version, user_id, N))
+		logger('NUCLEUS_RECOMMENDER', 'EXE', 'Fetching food recommendations from model {}_{} for user_id={} with N={} successful!'.format(model_name, model_version, user_id, N))
 		return {'data': {'foodRecommendations': food_recommendations, 'modelCreatedAt': model_created_at}}
 
-	def update_model(self):
+	def update_model(self, model_name, model_version):
 		# Use celery or gevent
-		logger('NUCLEUS_RECOMMENDER', 'REQ', 'update_model() called for: {}_{}.'.format(self.model_class.model_name, self.model_class.model_version))
+		logger('NUCLEUS_RECOMMENDER', 'REQ', 'update_model() called for: {}_{}.'.format(model_name, model_version))
+		self.__load_model_class__(model_name, model_version)
 		self.model_class.update_model(self.db_main, self.db_ai, self.fs_ai)
-		logger('NUCLEUS_RECOMMENDER', 'EXE', 'Update of the model: {}_{} successful!'.format(self.model_class.model_name, self.model_class.model_version))
+		logger('NUCLEUS_RECOMMENDER', 'EXE', 'Update of the model: {}_{} successful!'.format(model_name, model_version))
 		return {'message': 'Model has been updated successfully!'}
