@@ -27,16 +27,17 @@ class NoModel(Exception):
 		return 'ALERT! The ML Model: {}_{} is not yet trained! Please update the model!'.format(self.model_name, self.model_version)
 
 class NoForecast(Exception):
-	def __init__(self, model_name, model_version, item_data_id):
+	def __init__(self, model_name, model_version, item_data_id, kitchen_id):
 		self.model_name = model_name
 		self.model_version = model_version
 		self.item_data_id = item_data_id
+		self.kitchen_id = kitchen_id
 
 	def http_status(self):
 		return 404
 
 	def __str__(self):
-		return 'ALERT! The forecast for item_data_id={} with ML Model: {}_{} does not exist! Please update the model!'.format(self.item_data_id, self.model_name, self.model_version)
+		return 'ALERT! The forecast for item_data_id={} of kitchen={} with ML Model: {}_{} does not exist! Please update the model!'.format(self.item_data_id, self.kitchen_id, self.model_name, self.model_version)
 
 class DBError(Exception):
 	def __init__(self, e, db_name, error):

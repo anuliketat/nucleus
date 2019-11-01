@@ -1,12 +1,12 @@
 import datetime
 import pickle
-import json
 
 import numpy as np
 import pandas as pd
 from bson.binary import Binary
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-from statsmodels.tsa.holtwinters import SimpleExpSmoothing
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from statsmodels.tools.sm_exceptions import ConvergenceWarning
 
 from api.exceptions import NoModel
 from utils.mase import mase
@@ -16,10 +16,9 @@ from utils.io import model_serialize
 
 from ..basic_model.basic_model import basic_model
 
-
-class ses_v1_0_0(basic_model):
+class hw_v1_0_0(basic_model):
     def __init__(self):
-        self.model_name = 'ses'
+        self.model_name = 'hw'
         self.model_version = 'v1.0.0'
 
     def __get_data__(self, item_data_id, db_main, kitchen_id, mode='D'):
@@ -53,15 +52,39 @@ class ses_v1_0_0(basic_model):
 
         return train, test, data
 
-    def __ets__(self, ts_data, n_periods): #Exponential Smoothing function
+    def __seasonal_periods__(self, ts_data, mode='D'):
         """
-            ts_data - time series data with datetime index and target variable
+            ts_data - time series data
+        """
+        if mode == 'W':
+            if len(ts_data) <= 3:
+                s_periods, s_type = None, None
+            else:
+                s_periods = 2
+                s_type = 'add'
+        elif mode == 'M':
+            if len(ts_data) < 2:
+                s_periods, s_type = None, None
+            else:
+                s_periods = 2
+                s_type = 'add'
+        else:
+            if len(ts_data) <= 14:
+                s_periods, s_type = None, None
+            else:
+                s_periods = 14
+                s_type = 'add'
+
+        return s_periods, s_type
+
+    def __hw__(self, ts_data, s_periods, s_type, n_periods, mode='D'):
+        """
+            ts_data - time series data with datetime index and 'quantity' column
             n_periods - #periods to forecast
-            ------------------------------------------------------------
             returns model and forecasted values for the period.
         """
-        model = SimpleExpSmoothing(np.asarray(ts_data)).fit()
-        forecast = model.forecast(n_periods)
+        model = ExponentialSmoothing(np.asarray(ts_data['quantity']), seasonal_periods=s_periods, trend='add', seasonal=s_type).fit()
+        forecast = model.forecast(steps = n_periods)
 
         return model, forecast
 
@@ -70,12 +93,15 @@ class ses_v1_0_0(basic_model):
             preds - forecasted time series dataframe
             st_err_data - test data and predicted test dataframe
             alpha - 0 to 1. Confidence intervals for the forecasted values. Default is 80%
-            ---------------------------------------------------------------------------------
             returns lower and upper conf intervals for the forecasts
         """
         z_scr = z_score(alpha)
-        lower = preds.forecast - z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5)
-        upper = preds.forecast + z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5)
+        lower, upper = [], []
+        for i in preds.forecast:
+            a = i-z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5)
+            b = i+z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5)
+            lower.append(a)
+            upper.append(b)
 
         return lower, upper
 
@@ -97,9 +123,9 @@ class ses_v1_0_0(basic_model):
             items = [int(i) for i in items if i]
             print('-'*45, 'Kitchen ID: {}'.format(kitchen_id), '-'*45)
             for item_data_id in items:
-                print('\nKitchen: {} | Item Data ID: {} | Mode: {} | Model: {}'.format(kitchen_id, item_data_id, mode, self.model_name.upper()))
-                train, test, data = self.__get_data__(item_data_id, db_main, kitchen_id, mode)
-                if len(data) <= 2: # for items with no data, forecast is none
+                print('\nKitchen: {} | Item Data ID: {} | Mode: {} | Model: {}'.format(kitchen_id, item_data_id, mode, self.model_name))
+                train, test, data = self.__get_data__(item_data_id, db_main, kitchen_id, mode=mode)
+                if len(data) <= 2:
                     no_data_items.append(tuple((kitchen_id, item_data_id)))
                     kit_items = [no_data_items[i][1] for i in range(len(no_data_items)) if no_data_items[i][0]==kitchen_id]
                     data_less_items[kitchen_id] = dict({'total':len(kit_items), 'items':kit_items})
@@ -107,26 +133,14 @@ class ses_v1_0_0(basic_model):
                     print('forecast:', forecast)
                     continue
                 else:
+                    s_periods_train, s_type_train = self.__seasonal_periods__(train, mode=mode)
+                    s_periods, s_type = self.__seasonal_periods__(data, mode=mode)
                     try:
-                        m, test_pred = self.__ets__(train, n_periods=len(test))
-                        model, forecast = self.__ets__(data, int(n_periods))
-                    except ValueError as e:
-                        logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
-                        logger('NUCLEUS_MANCIO', 'ERR', 'Train data does not have any records.')
-                        logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_data_id={} with mode={}.'.format(self.model_name, self.model_version, item_data_id, mode))
-                        continue
-                    except NotImplementedError as e:
-                        logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
-                        logger('NUCLEUS_MANCIO', 'ERR', 'Train data has only {} records.'.format(len(train)))
-                        logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_data_id={} with mode={}.'.format(self.model_name, self.model_version, item_data_id, mode))
-                        continue
-                    except ZeroDivisionError as e:
-                        logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
-                        logger('NUCLEUS_MANCIO', 'ERR', 'Train data or full data have {} records and AICC = infinity.'.format(len(data)))
-                        continue
+                        m, test_pred = self.__hw__(train, s_periods=s_periods_train, s_type=s_type_train, n_periods=len(test), mode=mode)
+                        model, forecast = self.__hw__(data, s_periods=s_periods, s_type=s_type, n_periods=n_periods, mode=mode)
                     except Exception as e:
                         logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
-                        logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_data_id={} with mode={}.'.format(self.model_name, self.model_version, item_data_id, mode))
+                        logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_data_id={} in kitchen={} with mode={}.'.format(self.model_name, self.model_version, item_data_id, kitchen_id, mode))
                         continue
 
                     test_preds = pd.DataFrame({'pred':test_pred, 'actual':test.quantity}, index=test.index)
@@ -139,7 +153,7 @@ class ses_v1_0_0(basic_model):
                     print(forecast)
                     forecast.index = forecast.index.strftime('%Y-%m-%d')
 
-                    residuals = m.resid
+                    residuals = test.quantity - test_pred
 
                     metrics = {}
                     metrics['aic'] = m.aic

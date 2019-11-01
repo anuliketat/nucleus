@@ -1,14 +1,15 @@
 import datetime
 import pickle
-import json
 
 import numpy as np
 import pandas as pd
+#import scipy
 from bson.binary import Binary
+from pmdarima.arima import auto_arima
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-from statsmodels.tsa.holtwinters import SimpleExpSmoothing
+from statsmodels.tsa import arima_model
+from statsmodels.tsa.statespace import sarimax
 
-from api.exceptions import NoModel
 from utils.mase import mase
 from utils.misc import get_traceback, logger
 from utils.z_score import z_score
@@ -17,9 +18,9 @@ from utils.io import model_serialize
 from ..basic_model.basic_model import basic_model
 
 
-class ses_v1_0_0(basic_model):
+class aa_v1_0_0(basic_model):
     def __init__(self):
-        self.model_name = 'ses'
+        self.model_name = 'aa'
         self.model_version = 'v1.0.0'
 
     def __get_data__(self, item_data_id, db_main, kitchen_id, mode='D'):
@@ -36,46 +37,76 @@ class ses_v1_0_0(basic_model):
                     {'$group': {'_id': '$date', 'quant': {'$sum': '$quantity'}}},
                     {'$sort': {'_id':1}}
                 ]
-        quantity, time = [], []
+        quantity, date = [], []
         for data in db_main.ordered_items.aggregate(pipeline):
-            time.append(data.get('_id'))
+            date.append(data.get('_id'))
             quantity.append(data.get('quant'))
 
-        item = pd.DataFrame({'quantity':quantity, 'time':time})
+        item = pd.DataFrame({'quantity':quantity, 'timestamp':date})
         item.dropna(axis=0, inplace=True)
-        item.time = pd.to_datetime(item.time, dayfirst=True, format='%Y-%m-%d %H:%M').dt.date #sparse date from datetime
-        item.time = pd.to_datetime(item.time)
-        item.set_index('time', inplace=True)
+        item.timestamp = pd.to_datetime(item.timestamp, dayfirst=True, format='%Y-%m-%d %H:%M').dt.date #sparse date from datetime
+        item.timestamp = pd.to_datetime(item.timestamp)
+        item.set_index('timestamp', inplace=True)
         print('item records: ', item.shape[0])
+
         data = item.resample(mode).sum().fillna(0)
+        data['dayOfWeek'] = pd.DatetimeIndex(data.index).weekday+1
+        data['month'] = pd.DatetimeIndex(data.index).month
         train = data[:int(0.9*(len(data)))]
         test = data[int(0.9*(len(data))):]
+        for col in item.columns[1:]:
+            item[col] = item[col].astype('object')
 
         return train, test, data
 
-    def __ets__(self, ts_data, n_periods): #Exponential Smoothing function
+    def __future_df__(self, ts_data, n_periods, mode='D'):
+        dates = pd.date_range(start=ts_data.index.max()+datetime.timedelta(days=1), periods=n_periods, freq=mode)
+        future_df = pd.DataFrame({'dayOfWeek':0, 'month':0}, index=dates)
+        future_df['dayOfWeek'] = pd.DatetimeIndex(future_df.index).weekday+1
+        future_df['month'] = pd.DatetimeIndex(future_df.index).month
+        for col in future_df.columns:
+            future_df[col] = future_df[col].astype('object')
+
+        return future_df
+
+    def __auto_arima__(self, ts_data, fit_data, validation_size, n_periods, mode='D', validation=False):
         """
-            ts_data - time series data with datetime index and target variable
+            ts_data - time series data with datetime index and a column 'quantity'
             n_periods - #periods to forecast
-            ------------------------------------------------------------
             returns model and forecasted values for the period.
         """
-        model = SimpleExpSmoothing(np.asarray(ts_data)).fit()
-        forecast = model.forecast(n_periods)
+        m = (7 if mode=='D' else 1) #no.of periodic cycles
+        model = auto_arima(ts_data.quantity, m=m, error_action='ignore', suppress_warnings=True, start_p=0, start_q=0, max_p=4, max_q=4,
+                            start_P=0, start_Q=0, seasonal=False, stepwise=True, n_jobs=1,
+                            random=True, out_of_sample_size=validation_size, scoring='mae')
+        exog_vars = np.column_stack((ts_data.dayOfWeek, ts_data.month)) #other exogenous variables to train
+        model.fit(fit_data.quantity, exogenous=exog_vars[:len(fit_data)])
+        if validation:
+            forecast = model.predict(exogenous=exog_vars[len(fit_data):], n_periods=n_periods)
+        else:
+            future_df = self.__future_df__(ts_data, n_periods=n_periods, mode=mode)
+            exog_vars_future = np.column_stack((future_df.dayOfWeek, future_df.month))
+            forecast = model.predict(exogenous=exog_vars_future, n_periods=n_periods)
 
         return model, forecast
 
-    def __conf_int__(self, preds, std_err_data, alpha=0.20):
+    def __conf_int__(self, preds_df, std_err_df, alpha=0.20):
         """
-            preds - forecasted time series dataframe
-            st_err_data - test data and predicted test dataframe
+            preds_df - forecasted time series dataframe
+            st_err_df - test data and predicted test dataframe
             alpha - 0 to 1. Confidence intervals for the forecasted values. Default is 80%
-            ---------------------------------------------------------------------------------
             returns lower and upper conf intervals for the forecasts
         """
         z_scr = z_score(alpha)
-        lower = preds.forecast - z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5)
-        upper = preds.forecast + z_scr*((mean_squared_error(std_err_data.actual, std_err_data.pred))**0.5)
+        if std_err_df.isnull().values.any():
+            lower, upper = np.NaN, np.NaN
+        else:
+            lower, upper = [], []
+            for i in preds_df.forecast:
+                a = i-z_scr*((mean_squared_error(std_err_df.actual, std_err_df.pred))**0.5)
+                b = i+z_scr*((mean_squared_error(std_err_df.actual, std_err_df.pred))**0.5)
+                lower.append(a)
+                upper.append(b)
 
         return lower, upper
 
@@ -89,7 +120,7 @@ class ses_v1_0_0(basic_model):
             kitchen_ids.append(data.get('kitchen_id'))
         orders = pd.DataFrame({'kit_id':kitchen_ids, 'item_data_id':item_data_ids}) # for looping on items per kitchen since we have ids repeating in kitchens
         orders.dropna(axis=0, inplace=True)
-        #item_data_ids = [103]
+
         data_less_items = {}
         no_data_items = [] #a blacklist for items with no data
         for kitchen_id in sorted(set(kitchen_ids)):
@@ -98,8 +129,8 @@ class ses_v1_0_0(basic_model):
             print('-'*45, 'Kitchen ID: {}'.format(kitchen_id), '-'*45)
             for item_data_id in items:
                 print('\nKitchen: {} | Item Data ID: {} | Mode: {} | Model: {}'.format(kitchen_id, item_data_id, mode, self.model_name.upper()))
-                train, test, data = self.__get_data__(item_data_id, db_main, kitchen_id, mode)
-                if len(data) <= 2: # for items with no data, forecast is none
+                train, test, data = self.__get_data__(item_data_id, db_main, kitchen_id, mode=mode)
+                if len(data) <= 3: # for items with no data, forecast is none
                     no_data_items.append(tuple((kitchen_id, item_data_id)))
                     kit_items = [no_data_items[i][1] for i in range(len(no_data_items)) if no_data_items[i][0]==kitchen_id]
                     data_less_items[kitchen_id] = dict({'total':len(kit_items), 'items':kit_items})
@@ -108,53 +139,40 @@ class ses_v1_0_0(basic_model):
                     continue
                 else:
                     try:
-                        m, test_pred = self.__ets__(train, n_periods=len(test))
-                        model, forecast = self.__ets__(data, int(n_periods))
-                    except ValueError as e:
-                        logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
-                        logger('NUCLEUS_MANCIO', 'ERR', 'Train data does not have any records.')
-                        logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_data_id={} with mode={}.'.format(self.model_name, self.model_version, item_data_id, mode))
-                        continue
-                    except NotImplementedError as e:
-                        logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
-                        logger('NUCLEUS_MANCIO', 'ERR', 'Train data has only {} records.'.format(len(train)))
-                        logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_data_id={} with mode={}.'.format(self.model_name, self.model_version, item_data_id, mode))
-                        continue
-                    except ZeroDivisionError as e:
-                        logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
-                        logger('NUCLEUS_MANCIO', 'ERR', 'Train data or full data have {} records and AICC = infinity.'.format(len(data)))
-                        continue
+                        m, test_preds = self.__auto_arima__(data, train, validation_size=len(test), n_periods=len(test), validation=True)
+                        model, forecast = self.__auto_arima__(data, data, validation_size=len(test), n_periods=int(n_periods))
                     except Exception as e:
                         logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
-                        logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_data_id={} with mode={}.'.format(self.model_name, self.model_version, item_data_id, mode))
+                        logger('NUCLEUS_MANCIO', 'ERR', 'Error in update_model() for {}_{} and item_id={} with mode={}.'.format(self.model_name, self.model_version, item_data_id, mode))
                         continue
 
-                    test_preds = pd.DataFrame({'pred':test_pred, 'actual':test.quantity}, index=test.index)
+                    test_preds_df = pd.DataFrame({'pred':test_preds, 'actual':test.quantity}, index=test.index)
                     dates = pd.date_range(start=test.index.max()+datetime.timedelta(days=1), periods=len(forecast), freq=mode)
                     forecast = pd.DataFrame(forecast, index=dates, columns=['forecast'])
-                    forecast['yhat_lower'], forecast['yhat_upper'] = self.__conf_int__(preds=forecast, std_err_data=test_preds)
+                    forecast['yhat_lower'], forecast['yhat_upper'] = self.__conf_int__(preds_df=forecast, std_err_df=test_preds_df)
                     for col in forecast.columns:
                         forecast[col] = np.where(forecast[col]<0, 0, forecast[col])
-                        forecast[col] = np.int64(np.ceil(forecast[col]))
+                        forecast[col] = np.int32(np.ceil(forecast[col]))
                     print(forecast)
                     forecast.index = forecast.index.strftime('%Y-%m-%d')
 
-                    residuals = m.resid
+                    residuals = m.resid()
 
                     metrics = {}
-                    metrics['aic'] = m.aic
-                    metrics['bic'] = m.bic
-                    metrics['mse'] = mean_squared_error(test.quantity, test_pred)
-                    metrics['mae'] = mean_absolute_error(test.quantity, test_pred)
-                    metrics['mase'] = mase(test.quantity, test_pred)
+                    metrics['aic'] = m.aic()
+                    metrics['bic'] = m.bic()
+                    metrics['mse'] = np.NaN if test_preds_df.isnull().values.any() else mean_squared_error(test_preds_df.actual, test_preds_df.pred)
+                    metrics['mae'] = np.NaN if test_preds_df.isnull().values.any() else mean_absolute_error(test_preds_df.actual, test_preds_df.pred)
+                    metrics['mase'] = np.NaN if test_preds_df.isnull().values.any() else mase(test_preds_df.actual, test_preds_df.pred)
 
                 _model = {}
-                _model['kitchenID'] = kitchen_id
+                _model['kitchen'] = kitchen_id
                 _model['itemDataID'] = item_data_id
                 _model['data'] = data
                 _model['forecast'] = forecast
                 _model['residuals'] = residuals
                 _model['model'] = model
+                #_model['summary'] = m.summary()
                 model_id = fs_ai.put(model_serialize(_model))
 
                 ml_model = {}

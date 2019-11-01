@@ -9,18 +9,22 @@ from .control import MAControl
 
 blue_print = Blueprint('mancio', __name__, url_prefix='/mancio')
 
-@blue_print.route('/get-forecast/<model_name>/<model_version>/<item_data_id>', methods=['GET'])
-def get_forecast(model_name, model_version, item_data_id):
+@blue_print.route('/get-forecast/<item_data_id>/<kitchen_id>', defaults={'model_name': None, 'model_version': None})
+@blue_print.route('/get-forecast/<model_name>/<model_version>/<item_data_id>/<kitchen_id>', methods=['GET'])
+def get_forecast(model_name, model_version, item_data_id, kitchen_id):
 	start_time = time.time()
 
 	allowed_modes = ['D', 'W', 'M']
 	mode = request.args.get('mode', 'D').upper()
 	if mode not in allowed_modes:
 		mode = 'D'
+	n_periods = request.args.get('p')
+	if n_periods is None:
+		n_periods = 5
 
 	try:
 		mancio_engine = MAControl(g.db_main, g.db_ai, g.fs_ai)
-		response = mancio_engine.get_forecast(model_name, model_version, int(item_data_id), mode)
+		response = mancio_engine.get_forecast(model_name, model_version, int(item_data_id), str(kitchen_id), mode, n_periods)
 	except NoClass as e:
 		logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
 		logger('NUCLEUS_MANCIO', 'ERR', e.__str__())
@@ -34,9 +38,10 @@ def get_forecast(model_name, model_version, item_data_id):
 		return jsonify({'message': 'Unknown error! Please try after sometime.'}), 500
 
 	end_time = time.time()
-	logger('NUCLEUS_MANCIO', 'EXE_TIME', 'Execution time of get_forecast() for item_data_id={} with mode={} is {}.'.format(item_data_id, mode, end_time-start_time))
+	logger('NUCLEUS_MANCIO', 'EXE_TIME', 'Execution time of get_forecast() for item_data_id={} in kitchen={} with mode={} for {} periods is {}.'.format(item_data_id, kitchen_id, mode, n_periods, end_time-start_time))
 	return jsonify(response), 200
 
+@blue_print.route('/update-model', defaults={'model_name': None, 'model_version': None})
 @blue_print.route('/update-model/<model_name>/<model_version>', methods=['GET'])
 def update_model(model_name, model_version):
 	start_time = time.time()
@@ -45,10 +50,13 @@ def update_model(model_name, model_version):
 	mode = request.args.get('mode', 'D').upper()
 	if mode not in allowed_modes:
 		mode = 'D'
+	n_periods = request.args.get('p')
+	if n_periods is None:
+		n_periods = 5
 
 	try:
 		mancio_engine = MAControl(g.db_main, g.db_ai, g.fs_ai)
-		response = mancio_engine.update_model(model_name, model_version, mode)
+		response = mancio_engine.update_model(model_name, model_version, n_periods, mode)
 	except NoClass as e:
 		logger('NUCLEUS_MANCIO', 'ERR', get_traceback(e))
 		logger('NUCLEUS_MANCIO', 'ERR', e.__str__())
